@@ -3,312 +3,315 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>점심메뉴 선택기 · 멀티 유저 · 매일 달라요</title>
+  <title>점심메뉴 투표기 — 1인 3메뉴 제안 · 최다중복 선정</title>
   <style>
-    :root{--bg:#0b0d12;--card:#12151d;--sub:#8b95a7;--text:#e6e9ef;--acc:#4da3ff;--mut:#2a2f3a;--good:#38c172;--bad:#ef5753}
-    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b0d12,#0f1320);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    :root{--bg:#0b0d12;--card:#111520;--mut:#2a2f3a;--text:#e8ecf3;--sub:#8b95a7;--acc:#4da3ff}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b0d12,#0f1320);color:var(--text);
+         font:15.5px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Noto Sans KR,sans-serif}
     .wrap{max-width:980px;margin:32px auto;padding:0 16px}
     header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
     h1{font-size:22px;margin:0}
     .card{background:var(--card);border:1px solid var(--mut);border-radius:16px;padding:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    .col{flex:1 1 300px}
+    .col{flex:1 1 280px}
     label{font-weight:600}
-    input[type="text"], input[type="date"], textarea{width:100%;background:#0e1118;border:1px solid var(--mut);color:var(--text);padding:10px 12px;border-radius:12px}
-    textarea{min-height:90px}
-    .btn{appearance:none;border:1px solid var(--mut);background:#121826;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:600}
+    input[type="text"],input[type="date"]{width:100%;background:#0e1118;border:1px solid var(--mut);
+      color:var(--text);padding:10px 12px;border-radius:12px}
+    .btn{appearance:none;border:1px solid var(--mut);background:#121826;color:var(--text);
+      padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:600}
     .btn:hover{transform:translateY(-1px);border-color:var(--acc)}
     .btn.primary{background:var(--acc);color:#07121e;border-color:transparent}
-    .btn.ghost{background:transparent}
-    .pill{display:inline-flex;align-items:center;gap:8px;background:#0e131d;border:1px solid var(--mut);padding:6px 10px;border-radius:999px}
-    .pill button{border:none;background:transparent;color:var(--sub);cursor:pointer}
-    .muted{color:var(--sub)}
-    ul.people{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:8px 0 0;list-style:none}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-    .result{background:#0e131b;border:1px dashed var(--mut);padding:12px 14px;border-radius:12px}
+    .pill{display:flex;align-items:center;gap:10px;background:#0e131d;border:1px solid var(--mut);
+      padding:10px 12px;border-radius:14px}
+    .person{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}
+    .name{font-weight:700}
+    .menuflex{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .tiny{font-size:12px;color:var(--sub)}
+    .result{background:#0e131b;border:1px dashed var(--mut);padding:14px;border-radius:12px}
     .result h3{margin:0 0 8px;font-size:16px}
     .tag{display:inline-block;border:1px solid var(--mut);padding:2px 8px;border-radius:999px;font-size:12px;color:var(--sub)}
-    details{border:1px solid var(--mut);border-radius:12px;padding:10px 12px}
-    summary{cursor:pointer;font-weight:700}
+    .delete{border:none;background:transparent;color:#ff9a9a;cursor:pointer}
     .footer{margin-top:18px;color:var(--sub);font-size:13px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border-bottom:1px solid #1d2330;padding:8px;text-align:left}
+    th{color:var(--sub);font-weight:700}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>🍱 점심메뉴 선택기 <span class="muted">— 여러 명 / 날짜별 자동 변경</span></h1>
-      <div class="muted">Made for 연구실 팀 🧪</div>
+      <h1>🍱 점심메뉴 투표기 <span class="tiny">— 1인 3개 제안 · 최다중복 당선</span></h1>
+      <div class="tiny">Asia/Seoul 기준 날짜 고정</div>
     </header>
 
     <div class="row">
-      <section class="card col" aria-label="날짜 및 옵션">
+      <section class="card col" aria-label="날짜 및 실행">
         <div class="row">
           <div class="col">
             <label for="date">날짜</label>
             <input id="date" type="date" />
           </div>
-          <div class="col">
-            <label for="unique">옵션</label>
-            <div class="row">
-              <label class="pill"><input id="unique" type="checkbox" checked/> 중복 없이 배정</label>
-            </div>
-          </div>
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <button id="generate" class="btn primary">오늘 메뉴 뽑기</button>
-          <button id="shuffle" class="btn">다시 섞기</button>
-          <button id="clearHistory" class="btn ghost">최근 기록 지우기</button>
+          <button id="pickMenu" class="btn primary">오늘 메뉴 선정</button>
+          <button id="recalc" class="btn">다시 계산</button>
+          <button id="clearAll" class="btn">모든 입력 비우기</button>
         </div>
+        <div style="margin-top:10px"><span id="todayTag" class="tag"></span></div>
       </section>
 
       <section class="card col" aria-label="사람 추가">
-        <label for="personName">점심 먹는 사람 추가</label>
+        <label for="personName">점심 먹는 사람 추가 (각자 메뉴 3개 작성)</label>
         <div class="row">
           <input id="personName" type="text" placeholder="이름 입력 후 추가" />
           <button id="addPerson" class="btn">추가</button>
         </div>
-        <ul id="people" class="people"></ul>
-        <div class="muted" style="margin-top:6px">사람 목록은 브라우저에 저장됩니다 (로컬 저장소).</div>
+        <div class="tiny" style="margin-top:6px">사람/메뉴 입력은 브라우저에 저장됩니다.</div>
       </section>
     </div>
 
-    <section class="card" aria-label="결과">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h2 style="margin:0">결과</h2>
-        <span class="tag" id="todayTag"></span>
-      </div>
-      <div id="results" class="grid" style="margin-top:10px"></div>
+    <section class="card" aria-label="참가자 목록">
+      <div class="row" id="peopleList" style="gap:12px"></div>
+      <datalist id="menuSuggest"></datalist>
     </section>
 
-    <details style="margin-top:16px" class="card">
-      <summary>고급 설정 · 메뉴 풀 수정</summary>
-      <div class="row" style="margin-top:10px">
-        <div class="col">
-          <label for="menuPool">메뉴 풀 (쉼표 구분, 줄바꿈 가능)</label>
-          <textarea id="menuPool"></textarea>
-        </div>
+    <section class="card" aria-label="결과">
+      <h2 style="margin:0 0 8px">결과</h2>
+      <div id="resultBox" class="result">
+        <div class="tiny">아직 계산하지 않았습니다.</div>
       </div>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-        <button id="resetMenu" class="btn ghost">기본 메뉴로 되돌리기</button>
-        <button id="saveMenu" class="btn">메뉴 풀 저장</button>
-      </div>
-    </details>
+      <div id="freqBox"></div>
+    </section>
 
-    <div class="footer">ⓘ 같은 날짜에선 같은 결과가 재현되며, 날짜가 바뀌면 자동으로 다른 조합이 나옵니다. (시드 기반 셔플)</div>
+    <div class="footer">ⓘ 규칙: 각 참가자는 <b>메뉴 3개</b>를 입력합니다. 가장 많이 겹친 메뉴가 그날의 점심으로 선정됩니다. 동률이면 날짜 기반 시드로 동률 후보 중 1개를 안정적으로 선택합니다.</div>
   </div>
 
 <script>
-// ---------- 유틸: 시드 기반 RNG & 셔플 ----------
+/* ---------- 시드 RNG (동률 깨기용) ---------- */
 function cyrb128(str){
-  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
-  for(let i=0, k; i<str.length; i++){
-    k = str.charCodeAt(i);
-    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
-    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
-    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
-    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  let h1=1779033703,h2=3144134277,h3=1013904242,h4=2773480762;
+  for(let i=0,k;i<str.length;i++){
+    k=str.charCodeAt(i);
+    h1=h2^Math.imul(h1^k,597399067);
+    h2=h3^Math.imul(h2^k,2869860233);
+    h3=h4^Math.imul(h3^k,951274213);
+    h4=h1^Math.imul(h4^k,2716044179);
   }
-  h1 = Math.imul(h3 ^ (h1>>>18), 597399067);
-  h2 = Math.imul(h4 ^ (h2>>>22), 2869860233);
-  h3 = Math.imul(h1 ^ (h3>>>17), 951274213);
-  h4 = Math.imul(h2 ^ (h4>>>19), 2716044179);
-  return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+  h1=Math.imul(h3^(h1>>>18),597399067);
+  h2=Math.imul(h4^(h2>>>22),2869860233);
+  h3=Math.imul(h1^(h3>>>17),951274213);
+  h4=Math.imul(h2^(h4>>>19),2716044179);
+  return [(h1^h2^h3^h4)>>>0,(h2^h1)>>>0,(h3^h1)>>>0,(h4^h1)>>>0];
 }
 function mulberry32(a){
   return function(){
-    var t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    let t=a+=0x6D2B79F5;
+    t=Math.imul(t^t>>>15,t|1);
+    t^=t+Math.imul(t^t>>>7,t|61);
+    return ((t^t>>>14)>>>0)/4294967296;
   }
 }
-function seededShuffle(array, seedStr){
+function seededChoice(arr, seedStr){
+  if(arr.length===1) return arr[0];
   const seed = cyrb128(seedStr)[0];
-  const rand = mulberry32(seed);
-  const a = array.slice();
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(rand()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a;
+  const r = mulberry32(seed)();
+  return arr[Math.floor(r*arr.length)];
 }
 
-// ---------- 기본 메뉴 풀 ----------
+/* ---------- 기본 메뉴 제안 (datalist) ---------- */
 const DEFAULT_MENUS = [
   "김치찌개","된장찌개","비빔밥","불고기","제육볶음","냉면","칼국수","김밥","떡볶이","순대국",
   "부대찌개","감자탕","삼겹살덮밥","치킨","피자","파스타","햄버거","샌드위치","샐러드","초밥",
-  "돈카츠","라멘","우동","짜장면","짬뽕","탕수육","마라탕","훠궈","쌀국수(베트남)","팟타이",
-  "카레","나시고랭","분짜","규동","가츠동","포케","두부덮밥","비건불고기","순두부찌개","해장국",
-  "쭈꾸미볶음","낙지덮밥","도시락","칼비빔면","물비빔면","소바","바질페스토파스타","리조또","부리또",
-  "타코","케밥","파니니","쿠스쿠스","볶음밥","갈비탕","설렁탕","콩나물국밥","비지찌개","메밀국수"
+  "돈카츠","라멘","우동","짜장면","짬뽕","탕수육","마라탕","훠궈","쌀국수","팟타이",
+  "카레","나시고랭","분짜","규동","가츠동","포케","두부덮밥","순두부찌개","해장국",
+  "쭈꾸미볶음","낙지덮밥","도시락","소바","리조또","부리또","타코","케밥","볶음밥",
+  "갈비탕","설렁탕","콩나물국밥","비지찌개","메밀국수"
 ];
 
-// ---------- 상태 & 저장 ----------
-const LS_KEYS = {PEOPLE:'lunch.people', MENU:'lunch.menuPool', HISTORY:'lunch.history'};
+/* ---------- 상태 & 저장 ---------- */
+const LS_KEYS = { PEOPLE: 'lunch.people.v2' };
+// people: [{name: "홍길동", picks: ["피자","파스타","샐러드"]}, ...]
+
 function loadPeople(){
-  try{ return JSON.parse(localStorage.getItem(LS_KEYS.PEOPLE))||[] }catch(e){ return [] }
-}
-function savePeople(list){ localStorage.setItem(LS_KEYS.PEOPLE, JSON.stringify(list)); }
-function loadMenuPool(){
   try{
-    const raw = localStorage.getItem(LS_KEYS.MENU);
-    if(!raw) return DEFAULT_MENUS.slice();
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) && arr.length ? arr : DEFAULT_MENUS.slice();
-  }catch(e){ return DEFAULT_MENUS.slice() }
+    const raw = localStorage.getItem(LS_KEYS.PEOPLE);
+    const v = raw? JSON.parse(raw) : [];
+    // 마이그레이션/검증
+    return Array.isArray(v)? v.map(p=>({
+      name: String(p.name||'').trim(),
+      picks: Array.isArray(p.picks)? (p.picks.concat(['','','']).slice(0,3)) : ['','','']
+    })).filter(p=>p.name) : [];
+  }catch(e){ return [] }
 }
-function saveMenuPool(arr){ localStorage.setItem(LS_KEYS.MENU, JSON.stringify(arr)); }
-function saveHistory(dateStr, assignment){
-  const hist = JSON.parse(localStorage.getItem(LS_KEYS.HISTORY) || '{}');
-  hist[dateStr] = assignment; // { name: menu }
-  localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(hist));
+function savePeople(list){
+  localStorage.setItem(LS_KEYS.PEOPLE, JSON.stringify(list));
 }
 
-// ---------- DOM 엘리먼트 ----------
+/* ---------- DOM ---------- */
 const $date = document.getElementById('date');
-const $unique = document.getElementById('unique');
-const $add = document.getElementById('addPerson');
-const $name = document.getElementById('personName');
-const $people = document.getElementById('people');
-const $gen = document.getElementById('generate');
-const $shuffle = document.getElementById('shuffle');
-const $results = document.getElementById('results');
-const $menuPool = document.getElementById('menuPool');
-const $resetMenu = document.getElementById('resetMenu');
-const $saveMenu = document.getElementById('saveMenu');
 const $todayTag = document.getElementById('todayTag');
-const $clearHistory = document.getElementById('clearHistory');
+const $addPerson = document.getElementById('addPerson');
+const $personName = document.getElementById('personName');
+const $peopleList = document.getElementById('peopleList');
+const $menuSuggest = document.getElementById('menuSuggest');
+const $pickMenu = document.getElementById('pickMenu');
+const $recalc = document.getElementById('recalc');
+const $clearAll = document.getElementById('clearAll');
+const $resultBox = document.getElementById('resultBox');
+const $freqBox = document.getElementById('freqBox');
 
-let state = {
-  people: loadPeople(),
-  menuPool: loadMenuPool()
-};
+let state = { people: loadPeople() };
 
-// ---------- 초기 설정 ----------
+/* ---------- 초기화 ---------- */
 (function init(){
-  // 한국 시간 기준 오늘 날짜로 기본값 설정
-  const now = new Date();
-  const tzOffset = now.getTimezoneOffset();
-  // 강제 Asia/Seoul(UTC+9) 보정: 브라우저가 다른 타임존이어도 YYYY-MM-DD는 현지로 표시됨
-  const seoulOffsetMin = -9*60; // getTimezoneOffset은 UTC-로 음수
-  const d = new Date(now.getTime() + (seoulOffsetMin - tzOffset)*60000);
+  // datalist 채우기
+  DEFAULT_MENUS.forEach(m=>{
+    const o=document.createElement('option'); o.value=m; $menuSuggest.appendChild(o);
+  });
+  // 서울 날짜 기본값
+  const now=new Date(); const tzOffset=now.getTimezoneOffset(); const seoulOffsetMin=-9*60;
+  const d=new Date(now.getTime() + (seoulOffsetMin - tzOffset)*60000);
   $date.value = d.toISOString().slice(0,10);
-
-  renderPeople();
-  $menuPool.value = state.menuPool.join(', ');
   updateTodayTag();
+  renderPeople();
 })();
 
 function updateTodayTag(){
-  const ds = $date.value; if(!ds){ $todayTag.textContent='날짜 미지정'; return }
-  const weekday = ['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()];
+  const ds=$date.value; if(!ds){ $todayTag.textContent='날짜 미지정'; return }
+  const weekday=['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()];
   $todayTag.textContent = `${ds} (${weekday})`;
 }
 
-// ---------- 사람 관리 ----------
+/* ---------- 사람 렌더 ---------- */
 function renderPeople(){
-  $people.innerHTML = '';
-  state.people.forEach((p,i)=>{
-    const li = document.createElement('li');
-    li.className='pill';
-    li.innerHTML = `<span>👤 ${p}</span> <button title="삭제" aria-label="${p} 삭제">✕</button>`;
-    li.querySelector('button').addEventListener('click',()=>{
-      state.people.splice(i,1); savePeople(state.people); renderPeople();
+  $peopleList.innerHTML='';
+  if(!state.people.length){
+    const d=document.createElement('div');
+    d.className='tiny'; d.textContent='사람을 추가한 뒤 각자 메뉴 3개를 입력하세요.';
+    $peopleList.appendChild(d); return;
+  }
+  state.people.forEach((p,idx)=>{
+    const card=document.createElement('div'); card.className='pill'; card.style.width='100%';
+    const inner=document.createElement('div'); inner.className='person'; card.appendChild(inner);
+    const nameBox=document.createElement('div'); nameBox.className='name';
+    nameBox.innerHTML=`👤 ${p.name} <button class="delete" title="삭제">삭제</button>`;
+    inner.appendChild(nameBox);
+    const menus=document.createElement('div'); menus.className='menuflex'; inner.appendChild(menus);
+    p.picks.forEach((val,i)=>{
+      const inp=document.createElement('input');
+      inp.type='text'; inp.setAttribute('list','menuSuggest'); inp.placeholder=`메뉴 ${i+1}`;
+      inp.value=val||'';
+      inp.addEventListener('change',()=>{
+        state.people[idx].picks[i]=inp.value.trim();
+        savePeople(state.people);
+      });
+      menus.appendChild(inp);
     });
-    $people.appendChild(li);
-  })
+    nameBox.querySelector('button').addEventListener('click',()=>{
+      state.people.splice(idx,1); savePeople(state.people); renderPeople();
+    });
+    $peopleList.appendChild(card);
+  });
 }
-$add.addEventListener('click', ()=>{
-  const v = $name.value.trim(); if(!v) return;
-  if(state.people.includes(v)) { alert('이미 추가된 이름입니다.'); return; }
-  state.people.push(v); savePeople(state.people); renderPeople(); $name.value=''; $name.focus();
+
+/* ---------- 이벤트 ---------- */
+$addPerson.addEventListener('click', ()=>{
+  const v=$personName.value.trim(); if(!v) return;
+  if(state.people.some(p=>p.name===v)){ alert('이미 추가된 이름입니다.'); return; }
+  state.people.push({name:v, picks:['','','']});
+  savePeople(state.people); $personName.value=''; $personName.focus(); renderPeople();
 });
-$name.addEventListener('keydown', e=>{ if(e.key==='Enter') $add.click(); })
-
-// ---------- 메뉴 풀 관리 ----------
-$resetMenu.addEventListener('click', ()=>{
-  if(confirm('기본 메뉴로 되돌릴까요? 현재 내용은 사라집니다.')){
-    state.menuPool = DEFAULT_MENUS.slice();
-    $menuPool.value = state.menuPool.join(', ');
-    saveMenuPool(state.menuPool);
-  }
-});
-$saveMenu.addEventListener('click', ()=>{
-  const txt = $menuPool.value;
-  const arr = txt.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
-  if(arr.length < 5){ alert('메뉴는 최소 5개 이상이 좋습니다.'); return; }
-  state.menuPool = Array.from(new Set(arr));
-  saveMenuPool(state.menuPool);
-  alert('메뉴 풀이 저장되었습니다.');
-});
-
-// ---------- 배정 로직 ----------
-function assignMenus(dateStr, people, menuPool, unique){
-  if(!people.length) return {};
-  if(unique && menuPool.length < people.length){
-    // 메뉴가 부족하면 자동으로 non-unique로
-    unique = false;
-  }
-  const seedStr = `${dateStr}|${people.join(',')}|v1`;
-  const shuffledMenus = seededShuffle(menuPool, seedStr);
-  const shuffledPeople = seededShuffle(people, seedStr+'people');
-  const out = {};
-  if(unique){
-    for(let i=0;i<shuffledPeople.length;i++){
-      out[shuffledPeople[i]] = shuffledMenus[i % shuffledMenus.length];
-    }
-  }else{
-    // 사람마다 고유한 개인 시드로 뽑기
-    for(const name of shuffledPeople){
-      const m = seededShuffle(menuPool, seedStr+'@'+name)[0];
-      out[name] = m;
-    }
-  }
-  return out;
-}
-
-function renderResults(map){
-  $results.innerHTML='';
-  const names = Object.keys(map);
-  if(!names.length){
-    $results.innerHTML = '<div class="muted">사람을 추가한 뒤 메뉴를 뽑아보세요.</div>';
-    return;
-  }
-  names.sort();
-  for(const n of names){
-    const div = document.createElement('div');
-    div.className='result';
-    div.innerHTML = `<h3>👤 ${n}</h3><div style="font-size:18px;font-weight:800">🍽️ ${map[n]}</div>`;
-    $results.appendChild(div);
-  }
-}
-
-function generate(nowShuffle=false){
-  const ds = $date.value; if(!ds){ alert('날짜를 선택하세요.'); return; }
-  updateTodayTag();
-  const people = state.people.slice();
-  if(!people.length){ alert('사람을 한 명 이상 추가하세요.'); return; }
-  const unique = $unique.checked;
-  // 셔플 버튼은 동일 날짜에서 재셔플하도록 seed에 추가 토큰
-  const extra = nowShuffle ? ('#'+Math.random().toString(36).slice(2)) : '';
-  const map = assignMenus(ds+extra, people, state.menuPool, unique);
-  renderResults(map);
-  saveHistory(ds, map);
-}
-
-$gen.addEventListener('click', ()=> generate(false));
-$shuffle.addEventListener('click', ()=> generate(true));
-$date.addEventListener('change', ()=> generate(false));
-$unique.addEventListener('change', ()=> generate(false));
-$clearHistory.addEventListener('click', ()=>{
-  if(confirm('저장된 날짜별 결과 기록을 지울까요?')){
-    localStorage.removeItem(LS_KEYS.HISTORY);
-    alert('기록을 삭제했습니다.');
+$personName.addEventListener('keydown', e=>{ if(e.key==='Enter') $addPerson.click(); });
+$date.addEventListener('change', ()=> updateTodayTag());
+$clearAll.addEventListener('click', ()=>{
+  if(confirm('모든 사람의 메뉴 입력을 비울까요?')){
+    state.people = state.people.map(p=>({name:p.name, picks:['','','']}));
+    savePeople(state.people); renderPeople();
   }
 });
 
-// 첫 렌더
-renderResults({});
+/* ---------- 계산 로직: 최다중복 선정 ---------- */
+function normalizeMenu(s){
+  return s.trim().replace(/\s+/g,' ').toLowerCase();
+}
+function computeWinner(dateStr){
+  const entries=[]; // [{raw:"피자", norm:"피자", by:"홍길동"}...]
+  state.people.forEach(p=>{
+    p.picks.forEach(x=>{
+      const raw=(x||'').trim();
+      if(raw) entries.push({raw, norm: normalizeMenu(raw), by:p.name});
+    });
+  });
+
+  // 모든 참가자가 3개씩 채웠는지 체크 (필수 아님이지만 기본 정책)
+  const incomplete = state.people.filter(p=> p.picks.filter(x=> (x||'').trim()).length<3);
+  if(incomplete.length){
+    throw new Error(`아래 참여자가 3개를 모두 입력하지 않았습니다: ${incomplete.map(p=>p.name).join(', ')}`);
+  }
+  if(entries.length===0) throw new Error('입력된 메뉴가 없습니다.');
+
+  const freq=new Map(); // norm -> {count, rawSamples:Set}
+  entries.forEach(e=>{
+    if(!freq.has(e.norm)) freq.set(e.norm,{count:0, raw:new Set()});
+    const f=freq.get(e.norm); f.count++; f.raw.add(e.raw);
+  });
+
+  // 최대 득표 찾기
+  let max=0; let tops=[];
+  for(const [norm,info] of freq.entries()){
+    if(info.count>max){ max=info.count; tops=[{norm,info}] }
+    else if(info.count===max){ tops.push({norm,info}) }
+  }
+  // 표시용 원문: 가장 많이 등장한 표기 하나
+  const candidates = tops.map(x=>{
+    const display=[...x.info.raw][0]; // 첫 표기
+    return {norm:x.norm, display, count:x.info.count};
+  });
+
+  const winner = seededChoice(candidates, `${dateStr}|lunch-majority|v1`);
+  // 정렬된 빈도 테이블 생성
+  const table = [...freq.entries()].map(([norm,info])=>{
+    return {display:[...info.raw][0], count:info.count};
+  }).sort((a,b)=> b.count-a.count || a.display.localeCompare(b.display,'ko'));
+
+  return { winner, table, totalVotes: entries.length, voters: state.people.length };
+}
+
+/* ---------- UI 바인딩 ---------- */
+function renderResult(res){
+  const {winner, table, totalVotes, voters} = res;
+  $resultBox.innerHTML = `
+    <h3>오늘의 점심메뉴 🏆</h3>
+    <div style="font-size:22px;font-weight:900;margin-bottom:6px">🍽️ ${winner.display}</div>
+    <div class="tiny">득표수: ${winner.count} / 총 투표 ${totalVotes} (참가자 ${voters}명 · 1인 3표)</div>
+  `;
+  // 빈도표
+  const rows = table.map(r=>`<tr><td>${r.display}</td><td>${r.count}</td></tr>`).join('');
+  $freqBox.innerHTML = `
+    <h3 style="margin:14px 0 6px">득표 현황</h3>
+    <table>
+      <thead><tr><th>메뉴</th><th>표 수</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function runCompute(){
+  const ds=$date.value;
+  if(!ds){ alert('날짜를 선택하세요.'); return; }
+  try{
+    const res=computeWinner(ds);
+    renderResult(res);
+  }catch(err){
+    $resultBox.innerHTML = `<span class="tiny" style="color:#ffb0b0">오류: ${err.message}</span>`;
+    $freqBox.innerHTML='';
+  }
+}
+
+$pickMenu.addEventListener('click', runCompute);
+$recalc.addEventListener('click', runCompute);
+
 </script>
 </body>
 </html>
