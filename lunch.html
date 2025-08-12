@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>점심메뉴 선택기 · 멀티 유저 · 매일 달라요</title>
+  <style>
+    :root{--bg:#0b0d12;--card:#12151d;--sub:#8b95a7;--text:#e6e9ef;--acc:#4da3ff;--mut:#2a2f3a;--good:#38c172;--bad:#ef5753}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b0d12,#0f1320);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
+    .wrap{max-width:980px;margin:32px auto;padding:0 16px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:22px;margin:0}
+    .card{background:var(--card);border:1px solid var(--mut);border-radius:16px;padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1 1 300px}
+    label{font-weight:600}
+    input[type="text"], input[type="date"], textarea{width:100%;background:#0e1118;border:1px solid var(--mut);color:var(--text);padding:10px 12px;border-radius:12px}
+    textarea{min-height:90px}
+    .btn{appearance:none;border:1px solid var(--mut);background:#121826;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:600}
+    .btn:hover{transform:translateY(-1px);border-color:var(--acc)}
+    .btn.primary{background:var(--acc);color:#07121e;border-color:transparent}
+    .btn.ghost{background:transparent}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:#0e131d;border:1px solid var(--mut);padding:6px 10px;border-radius:999px}
+    .pill button{border:none;background:transparent;color:var(--sub);cursor:pointer}
+    .muted{color:var(--sub)}
+    ul.people{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:8px 0 0;list-style:none}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .result{background:#0e131b;border:1px dashed var(--mut);padding:12px 14px;border-radius:12px}
+    .result h3{margin:0 0 8px;font-size:16px}
+    .tag{display:inline-block;border:1px solid var(--mut);padding:2px 8px;border-radius:999px;font-size:12px;color:var(--sub)}
+    details{border:1px solid var(--mut);border-radius:12px;padding:10px 12px}
+    summary{cursor:pointer;font-weight:700}
+    .footer{margin-top:18px;color:var(--sub);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🍱 점심메뉴 선택기 <span class="muted">— 여러 명 / 날짜별 자동 변경</span></h1>
+      <div class="muted">Made for 연구실 팀 🧪</div>
+    </header>
+
+    <div class="row">
+      <section class="card col" aria-label="날짜 및 옵션">
+        <div class="row">
+          <div class="col">
+            <label for="date">날짜</label>
+            <input id="date" type="date" />
+          </div>
+          <div class="col">
+            <label for="unique">옵션</label>
+            <div class="row">
+              <label class="pill"><input id="unique" type="checkbox" checked/> 중복 없이 배정</label>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="generate" class="btn primary">오늘 메뉴 뽑기</button>
+          <button id="shuffle" class="btn">다시 섞기</button>
+          <button id="clearHistory" class="btn ghost">최근 기록 지우기</button>
+        </div>
+      </section>
+
+      <section class="card col" aria-label="사람 추가">
+        <label for="personName">점심 먹는 사람 추가</label>
+        <div class="row">
+          <input id="personName" type="text" placeholder="이름 입력 후 추가" />
+          <button id="addPerson" class="btn">추가</button>
+        </div>
+        <ul id="people" class="people"></ul>
+        <div class="muted" style="margin-top:6px">사람 목록은 브라우저에 저장됩니다 (로컬 저장소).</div>
+      </section>
+    </div>
+
+    <section class="card" aria-label="결과">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h2 style="margin:0">결과</h2>
+        <span class="tag" id="todayTag"></span>
+      </div>
+      <div id="results" class="grid" style="margin-top:10px"></div>
+    </section>
+
+    <details style="margin-top:16px" class="card">
+      <summary>고급 설정 · 메뉴 풀 수정</summary>
+      <div class="row" style="margin-top:10px">
+        <div class="col">
+          <label for="menuPool">메뉴 풀 (쉼표 구분, 줄바꿈 가능)</label>
+          <textarea id="menuPool"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="resetMenu" class="btn ghost">기본 메뉴로 되돌리기</button>
+        <button id="saveMenu" class="btn">메뉴 풀 저장</button>
+      </div>
+    </details>
+
+    <div class="footer">ⓘ 같은 날짜에선 같은 결과가 재현되며, 날짜가 바뀌면 자동으로 다른 조합이 나옵니다. (시드 기반 셔플)</div>
+  </div>
+
+<script>
+// ---------- 유틸: 시드 기반 RNG & 셔플 ----------
+function cyrb128(str){
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+  for(let i=0, k; i<str.length; i++){
+    k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1>>>18), 597399067);
+  h2 = Math.imul(h4 ^ (h2>>>22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3>>>17), 951274213);
+  h4 = Math.imul(h2 ^ (h4>>>19), 2716044179);
+  return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+}
+function mulberry32(a){
+  return function(){
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+function seededShuffle(array, seedStr){
+  const seed = cyrb128(seedStr)[0];
+  const rand = mulberry32(seed);
+  const a = array.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(rand()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// ---------- 기본 메뉴 풀 ----------
+const DEFAULT_MENUS = [
+  "김치찌개","된장찌개","비빔밥","불고기","제육볶음","냉면","칼국수","김밥","떡볶이","순대국",
+  "부대찌개","감자탕","삼겹살덮밥","치킨","피자","파스타","햄버거","샌드위치","샐러드","초밥",
+  "돈카츠","라멘","우동","짜장면","짬뽕","탕수육","마라탕","훠궈","쌀국수(베트남)","팟타이",
+  "카레","나시고랭","분짜","규동","가츠동","포케","두부덮밥","비건불고기","순두부찌개","해장국",
+  "쭈꾸미볶음","낙지덮밥","도시락","칼비빔면","물비빔면","소바","바질페스토파스타","리조또","부리또",
+  "타코","케밥","파니니","쿠스쿠스","볶음밥","갈비탕","설렁탕","콩나물국밥","비지찌개","메밀국수"
+];
+
+// ---------- 상태 & 저장 ----------
+const LS_KEYS = {PEOPLE:'lunch.people', MENU:'lunch.menuPool', HISTORY:'lunch.history'};
+function loadPeople(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEYS.PEOPLE))||[] }catch(e){ return [] }
+}
+function savePeople(list){ localStorage.setItem(LS_KEYS.PEOPLE, JSON.stringify(list)); }
+function loadMenuPool(){
+  try{
+    const raw = localStorage.getItem(LS_KEYS.MENU);
+    if(!raw) return DEFAULT_MENUS.slice();
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) && arr.length ? arr : DEFAULT_MENUS.slice();
+  }catch(e){ return DEFAULT_MENUS.slice() }
+}
+function saveMenuPool(arr){ localStorage.setItem(LS_KEYS.MENU, JSON.stringify(arr)); }
+function saveHistory(dateStr, assignment){
+  const hist = JSON.parse(localStorage.getItem(LS_KEYS.HISTORY) || '{}');
+  hist[dateStr] = assignment; // { name: menu }
+  localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(hist));
+}
+
+// ---------- DOM 엘리먼트 ----------
+const $date = document.getElementById('date');
+const $unique = document.getElementById('unique');
+const $add = document.getElementById('addPerson');
+const $name = document.getElementById('personName');
+const $people = document.getElementById('people');
+const $gen = document.getElementById('generate');
+const $shuffle = document.getElementById('shuffle');
+const $results = document.getElementById('results');
+const $menuPool = document.getElementById('menuPool');
+const $resetMenu = document.getElementById('resetMenu');
+const $saveMenu = document.getElementById('saveMenu');
+const $todayTag = document.getElementById('todayTag');
+const $clearHistory = document.getElementById('clearHistory');
+
+let state = {
+  people: loadPeople(),
+  menuPool: loadMenuPool()
+};
+
+// ---------- 초기 설정 ----------
+(function init(){
+  // 한국 시간 기준 오늘 날짜로 기본값 설정
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset();
+  // 강제 Asia/Seoul(UTC+9) 보정: 브라우저가 다른 타임존이어도 YYYY-MM-DD는 현지로 표시됨
+  const seoulOffsetMin = -9*60; // getTimezoneOffset은 UTC-로 음수
+  const d = new Date(now.getTime() + (seoulOffsetMin - tzOffset)*60000);
+  $date.value = d.toISOString().slice(0,10);
+
+  renderPeople();
+  $menuPool.value = state.menuPool.join(', ');
+  updateTodayTag();
+})();
+
+function updateTodayTag(){
+  const ds = $date.value; if(!ds){ $todayTag.textContent='날짜 미지정'; return }
+  const weekday = ['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()];
+  $todayTag.textContent = `${ds} (${weekday})`;
+}
+
+// ---------- 사람 관리 ----------
+function renderPeople(){
+  $people.innerHTML = '';
+  state.people.forEach((p,i)=>{
+    const li = document.createElement('li');
+    li.className='pill';
+    li.innerHTML = `<span>👤 ${p}</span> <button title="삭제" aria-label="${p} 삭제">✕</button>`;
+    li.querySelector('button').addEventListener('click',()=>{
+      state.people.splice(i,1); savePeople(state.people); renderPeople();
+    });
+    $people.appendChild(li);
+  })
+}
+$add.addEventListener('click', ()=>{
+  const v = $name.value.trim(); if(!v) return;
+  if(state.people.includes(v)) { alert('이미 추가된 이름입니다.'); return; }
+  state.people.push(v); savePeople(state.people); renderPeople(); $name.value=''; $name.focus();
+});
+$name.addEventListener('keydown', e=>{ if(e.key==='Enter') $add.click(); })
+
+// ---------- 메뉴 풀 관리 ----------
+$resetMenu.addEventListener('click', ()=>{
+  if(confirm('기본 메뉴로 되돌릴까요? 현재 내용은 사라집니다.')){
+    state.menuPool = DEFAULT_MENUS.slice();
+    $menuPool.value = state.menuPool.join(', ');
+    saveMenuPool(state.menuPool);
+  }
+});
+$saveMenu.addEventListener('click', ()=>{
+  const txt = $menuPool.value;
+  const arr = txt.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  if(arr.length < 5){ alert('메뉴는 최소 5개 이상이 좋습니다.'); return; }
+  state.menuPool = Array.from(new Set(arr));
+  saveMenuPool(state.menuPool);
+  alert('메뉴 풀이 저장되었습니다.');
+});
+
+// ---------- 배정 로직 ----------
+function assignMenus(dateStr, people, menuPool, unique){
+  if(!people.length) return {};
+  if(unique && menuPool.length < people.length){
+    // 메뉴가 부족하면 자동으로 non-unique로
+    unique = false;
+  }
+  const seedStr = `${dateStr}|${people.join(',')}|v1`;
+  const shuffledMenus = seededShuffle(menuPool, seedStr);
+  const shuffledPeople = seededShuffle(people, seedStr+'people');
+  const out = {};
+  if(unique){
+    for(let i=0;i<shuffledPeople.length;i++){
+      out[shuffledPeople[i]] = shuffledMenus[i % shuffledMenus.length];
+    }
+  }else{
+    // 사람마다 고유한 개인 시드로 뽑기
+    for(const name of shuffledPeople){
+      const m = seededShuffle(menuPool, seedStr+'@'+name)[0];
+      out[name] = m;
+    }
+  }
+  return out;
+}
+
+function renderResults(map){
+  $results.innerHTML='';
+  const names = Object.keys(map);
+  if(!names.length){
+    $results.innerHTML = '<div class="muted">사람을 추가한 뒤 메뉴를 뽑아보세요.</div>';
+    return;
+  }
+  names.sort();
+  for(const n of names){
+    const div = document.createElement('div');
+    div.className='result';
+    div.innerHTML = `<h3>👤 ${n}</h3><div style="font-size:18px;font-weight:800">🍽️ ${map[n]}</div>`;
+    $results.appendChild(div);
+  }
+}
+
+function generate(nowShuffle=false){
+  const ds = $date.value; if(!ds){ alert('날짜를 선택하세요.'); return; }
+  updateTodayTag();
+  const people = state.people.slice();
+  if(!people.length){ alert('사람을 한 명 이상 추가하세요.'); return; }
+  const unique = $unique.checked;
+  // 셔플 버튼은 동일 날짜에서 재셔플하도록 seed에 추가 토큰
+  const extra = nowShuffle ? ('#'+Math.random().toString(36).slice(2)) : '';
+  const map = assignMenus(ds+extra, people, state.menuPool, unique);
+  renderResults(map);
+  saveHistory(ds, map);
+}
+
+$gen.addEventListener('click', ()=> generate(false));
+$shuffle.addEventListener('click', ()=> generate(true));
+$date.addEventListener('change', ()=> generate(false));
+$unique.addEventListener('change', ()=> generate(false));
+$clearHistory.addEventListener('click', ()=>{
+  if(confirm('저장된 날짜별 결과 기록을 지울까요?')){
+    localStorage.removeItem(LS_KEYS.HISTORY);
+    alert('기록을 삭제했습니다.');
+  }
+});
+
+// 첫 렌더
+renderResults({});
+</script>
+</body>
+</html>
