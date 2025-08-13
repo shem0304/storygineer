@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[사용자용] 점심메뉴 제출 — 1인 3개 입력 · 토큰 생성</title>
+<style>
+  :root{--bg:#0b0d12;--card:#111520;--mut:#2a2f3a;--text:#e8ecf3;--sub:#8b95a7;--acc:#4da3ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0d12,#0f1320);color:var(--text);
+       font:15.5px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Noto Sans KR,sans-serif}
+  .wrap{max-width:720px;margin:28px auto;padding:0 16px}
+  h1{font-size:22px;margin:0 0 8px}
+  .card{background:var(--card);border:1px solid var(--mut);border-radius:16px;padding:14px;margin-top:12px}
+  label{font-weight:700}
+  input[type="date"],input[type="text"],textarea{width:100%;background:#0e1118;border:1px solid var(--mut);
+        color:var(--text);padding:10px 12px;border-radius:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .col{flex:1 1 180px}
+  .btn{appearance:none;border:1px solid var(--mut);background:#121826;color:var(--text);
+       padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:700}
+  .btn:hover{transform:translateY(-1px);border-color:var(--acc)}
+  .btn.primary{background:var(--acc);color:#07121e;border-color:transparent}
+  .tiny{font-size:12px;color:var(--sub)}
+  textarea{min-height:90px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍱 [사용자용] 점심메뉴 제출</h1>
+  <div class="tiny">이름과 메뉴 3개를 입력 → “제출 토큰 만들기” → 복사해서 관리자에게 전달하세요.</div>
+
+  <section class="card">
+    <div class="row">
+      <div class="col"><label for="name">이름</label><input id="name" type="text" placeholder="본인 이름"></div>
+      <div class="col"><label for="date">날짜</label><input id="date" type="date"><div id="todayTag" class="tiny"></div></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="col"><label for="m1">메뉴 1</label><input id="m1" type="text" list="suggest" placeholder="예: 김치찌개"></div>
+      <div class="col"><label for="m2">메뉴 2</label><input id="m2" type="text" list="suggest" placeholder="예: 파스타"></div>
+      <div class="col"><label for="m3">메뉴 3</label><input id="m3" type="text" list="suggest" placeholder="예: 초밥"></div>
+    </div>
+    <datalist id="suggest"></datalist>
+    <div class="row" style="margin-top:12px">
+      <button id="make" class="btn primary">제출 토큰 만들기</button>
+      <button id="clear" class="btn">입력 비우기</button>
+      <label class="tiny" style="display:flex;align-items:center;gap:6px"><input id="saveLocal" type="checkbox" checked>이 입력을 이 브라우저에 저장</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <label for="token">제출 토큰</label>
+    <textarea id="token" readonly placeholder="여기에 생성됩니다. 복사해서 제출하세요."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="copy" class="btn">토큰 복사</button>
+      <button id="download" class="btn">토큰 .txt 저장</button>
+    </div>
+    <div class="tiny" style="margin-top:6px">형식: Base64(JSON). 관리자 페이지(lunch_admin.html)에 그대로 붙여넣으면 처리됩니다.</div>
+  </section>
+</div>
+
+<script>
+/* ===== 기본 메뉴 제안 ===== */
+const DEFAULT_MENUS = ["김치찌개","된장찌개","비빔밥","불고기","제육볶음","냉면","칼국수","김밥","떡볶이","순대국",
+  "부대찌개","감자탕","치킨","피자","파스타","햄버거","샐러드","초밥","돈카츠","라멘","우동",
+  "짜장면","짬뽕","탕수육","마라탕","쌀국수","팟타이","카레","규동","포케","순두부찌개","해장국",
+  "볶음밥","갈비탕","설렁탕","콩나물국밥","메밀국수"];
+
+/* ===== Base64 UTF-8 ===== */
+function b64encodeUtf8(s){return btoa(unescape(encodeURIComponent(s)));}
+
+/* ===== 날짜 기본값(Seoul) ===== */
+const $date=document.getElementById('date');
+const $todayTag=document.getElementById('todayTag');
+(function initDate(){
+  const now=new Date(); const tz=now.getTimezoneOffset(); const seoul=-9*60;
+  const d=new Date(now.getTime() + (seoul - tz)*60000);
+  $date.value = d.toISOString().slice(0,10);
+  updateTodayTag();
+})();
+function updateTodayTag(){
+  const ds=$date.value; if(!ds){ $todayTag.textContent='날짜 미지정'; return }
+  const wd=['일','월','화','수','목','금','토'][new Date(ds+'T00:00:00').getDay()];
+  $todayTag.textContent = `${ds} (${wd})`;
+}
+
+/* ===== DOM ===== */
+const $name=document.getElementById('name');
+const $m1=document.getElementById('m1');
+const $m2=document.getElementById('m2');
+const $m3=document.getElementById('m3');
+const $make=document.getElementById('make');
+const $clear=document.getElementById('clear');
+const $token=document.getElementById('token');
+const $copy=document.getElementById('copy');
+const $download=document.getElementById('download');
+const $saveLocal=document.getElementById('saveLocal');
+const $suggest=document.getElementById('suggest');
+
+/* ===== datalist 채우기 ===== */
+DEFAULT_MENUS.forEach(m=>{ const o=document.createElement('option'); o.value=m; $suggest.appendChild(o); });
+
+/* ===== 로컬 저장 ===== */
+const LS='lunch_user_last';
+(function loadLocal(){
+  try{
+    const o=JSON.parse(localStorage.getItem(LS)||'null');
+    if(o){ $name.value=o.name||''; $m1.value=o.p1||''; $m2.value=o.p2||''; $m3.value=o.p3||''; $date.value=o.date||$date.value; updateTodayTag(); }
+  }catch(_){}
+})();
+function maybeSave(){
+  if(!$saveLocal.checked) return;
+  const o={name:$name.value,date:$date.value,p1:$m1.value,p2:$m2.value,p3:$m3.value};
+  localStorage.setItem(LS, JSON.stringify(o));
+}
+
+/* ===== 유틸 ===== */
+function trim(s){return String(s||'').trim();}
+
+/* ===== 이벤트 ===== */
+[$name,$m1,$m2,$m3,$date].forEach(el=> el.addEventListener('change', maybeSave));
+
+$clear.addEventListener('click', ()=>{
+  $m1.value=$m2.value=$m3.value=''; maybeSave(); $token.value='';
+});
+
+$make.addEventListener('click', ()=>{
+  const name=trim($name.value);
+  const date=trim($date.value);
+  const picks=[trim($m1.value),trim($m2.value),trim($m3.value)];
+  if(!name){ alert('이름을 입력하세요.'); return; }
+  if(!date){ alert('날짜를 선택하세요.'); return; }
+  if(picks.some(x=>!x)){ alert('메뉴 3개를 모두 입력하세요.'); return; }
+  const payload={version:'v1', name, date, picks};
+  const token = b64encodeUtf8(JSON.stringify(payload));
+  $token.value = token;
+  maybeSave();
+});
+
+$copy.addEventListener('click', async ()=>{
+  if(!$token.value){ alert('먼저 토큰을 생성하세요.'); return; }
+  try{ await navigator.clipboard.writeText($token.value); alert('토큰을 복사했습니다.'); }catch(_){}
+});
+
+$download.addEventListener('click', ()=>{
+  if(!$token.value){ alert('먼저 토큰을 생성하세요.'); return; }
+  const blob = new Blob([$token.value+'\n'], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`lunch_token_${$name.value||'noname'}.txt`; a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
