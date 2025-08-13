@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>[사용자용] 점심메뉴 제출 — 1인 3개 입력 · 텍스트 파일 저장</title>
+<title>[사용자용] 점심메뉴 제출 — GitHub 자동 업로드</title>
 <style>
   :root{--bg:#0b0d12;--card:#111520;--mut:#2a2f3a;--text:#e8ecf3;--sub:#8b95a7;--acc:#4da3ff}
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(180deg,#0b0d12,#0f1320);color:var(--text);
        font:15.5px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Noto Sans KR,sans-serif}
-  .wrap{max-width:720px;margin:28px auto;padding:0 16px}
+  .wrap{max-width:760px;margin:28px auto;padding:0 16px}
   h1{font-size:22px;margin:0 0 8px}
   .card{background:var(--card);border:1px solid var(--mut);border-radius:16px;padding:14px;margin-top:12px}
   label{font-weight:700}
-  input[type="date"],input[type="text"],textarea{width:100%;background:#0e1118;border:1px solid var(--mut);
+  input[type="date"],input[type="text"],input[type="password"],textarea{width:100%;background:#0e1118;border:1px solid var(--mut);
         color:var(--text);padding:10px 12px;border-radius:12px}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .col{flex:1 1 180px}
@@ -22,12 +22,14 @@
   .btn:hover{transform:translateY(-1px);border-color:var(--acc)}
   .btn.primary{background:var(--acc);color:#07121e;border-color:transparent}
   .tiny{font-size:12px;color:var(--sub)}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  .ok{color:#8fe18f}.warn{color:#ffd27d}.err{color:#ff9a9a}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🍱 [사용자용] 점심메뉴 제출 (파일 저장)</h1>
-  <div class="tiny">이름·날짜·메뉴 3개 입력 → “제출 파일(.txt) 저장” → 파일을 관리자에게 전달하세요.</div>
+  <h1>🍱 점심메뉴 제출 — GitHub 자동 업로드</h1>
+  <div class="tiny">이름·날짜·메뉴 3개 입력 → “GitHub로 업로드”를 누르면 <b>shem0304/storygineer</b> 저장소로 바로 업로드됩니다.</div>
 
   <section class="card">
     <div class="row">
@@ -40,16 +42,32 @@
       <div class="col"><label for="m3">메뉴 3</label><input id="m3" type="text" list="suggest" placeholder="예: 초밥"></div>
     </div>
     <datalist id="suggest"></datalist>
-    <div class="row" style="margin-top:12px">
-      <button id="save" class="btn primary">제출 파일(.txt) 저장</button>
-      <button id="clear" class="btn">입력 비우기</button>
-      <label class="tiny" style="display:flex;align-items:center;gap:6px"><input id="saveLocal" type="checkbox" checked>이 입력을 이 브라우저에 저장</label>
+  </section>
+
+  <section class="card">
+    <h3 style="margin:0 0 8px">GitHub 업로드 설정</h3>
+    <div class="row">
+      <div class="col"><label for="owner">Owner</label><input id="owner" type="text" value="shem0304"></div>
+      <div class="col"><label for="repo">Repo</label><input id="repo" type="text" value="storygineer"></div>
+      <div class="col"><label for="branch">Branch</label><input id="branch" type="text" value="gh-pages" placeholder="예: gh-pages 또는 main"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="col"><label for="subdir">업로드 하위 경로(선택)</label><input id="subdir" type="text" value="submissions" placeholder="예: submissions / docs/submissions"></div>
+      <div class="col"><label for="token">GitHub 토큰 (repo contents 권한)</label><input id="token" type="password" placeholder="PAT 토큰 입력 (저장되지 않음)"></div>
+    </div>
+    <div class="tiny" style="margin-top:6px">
+      • 토큰은 <b>브라우저 메모리에서만 사용</b>하고 저장하지 않습니다. 안전을 위해 <b>fine-grained PAT</b>로 해당 저장소에 <b>Contents: Read & Write</b> 권한만 부여하세요.<br>
+      • GitHub Pages가 <span class="mono">gh-pages</span>가 아닌 <span class="mono">main/docs</span>을 쓰면 Branch를 <span class="mono">main</span>, 경로를 <span class="mono">docs/submissions</span> 등으로 바꾸세요.
     </div>
   </section>
 
   <section class="card">
-    <h3 style="margin:0 0 6px">미리보기</h3>
-    <pre id="preview" class="tiny" style="white-space:pre-wrap;background:#0e1118;border:1px solid #2a2f3a;border-radius:12px;padding:10px"></pre>
+    <div class="row" style="align-items:flex-end">
+      <button id="upload" class="btn primary">GitHub로 업로드</button>
+      <button id="download" class="btn">대신 로컬로 저장</button>
+      <span id="status" class="tiny"></span>
+    </div>
+    <div id="links" class="tiny" style="margin-top:8px"></div>
   </section>
 </div>
 
@@ -59,6 +77,7 @@ const DEFAULT_MENUS=["김치찌개","된장찌개","비빔밥","불고기","제�
   "부대찌개","감자탕","치킨","피자","파스타","햄버거","샐러드","초밥","돈카츠","라멘","우동",
   "짜장면","짬뽕","탕수육","마라탕","쌀국수","팟타이","카레","규동","포케","순두부찌개","해장국",
   "볶음밥","갈비탕","설렁탕","콩나물국밥","메밀국수"];
+DEFAULT_MENUS.forEach(m=>{ const o=document.createElement('option'); o.value=m; (document.getElementById('suggest')).appendChild(o); });
 
 /* ===== 날짜 기본값(Seoul) ===== */
 const $date=document.getElementById('date');
@@ -66,7 +85,8 @@ const $todayTag=document.getElementById('todayTag');
 (function initDate(){
   const now=new Date(); const tz=now.getTimezoneOffset(); const seoul=-9*60;
   const d=new Date(now.getTime() + (seoul - tz)*60000);
-  $date.value = d.toISOString().slice(0,10); updateTodayTag();
+  $date.value = d.toISOString().slice(0,10);
+  updateTodayTag();
 })();
 function updateTodayTag(){
   const ds=$date.value; if(!ds){ $todayTag.textContent='날짜 미지정'; return }
@@ -79,67 +99,112 @@ const $name=document.getElementById('name');
 const $m1=document.getElementById('m1');
 const $m2=document.getElementById('m2');
 const $m3=document.getElementById('m3');
-const $save=document.getElementById('save');
-const $clear=document.getElementById('clear');
-const $saveLocal=document.getElementById('saveLocal');
-const $suggest=document.getElementById('suggest');
-const $preview=document.getElementById('preview');
+const $owner=document.getElementById('owner');
+const $repo=document.getElementById('repo');
+const $branch=document.getElementById('branch');
+const $subdir=document.getElementById('subdir');
+const $token=document.getElementById('token');
+const $upload=document.getElementById('upload');
+const $download=document.getElementById('download');
+const $status=document.getElementById('status');
+const $links=document.getElementById('links');
 
-/* ===== datalist 채우기 ===== */
-DEFAULT_MENUS.forEach(m=>{ const o=document.createElement('option'); o.value=m; $suggest.appendChild(o); });
-
-/* ===== 로컬 저장 ===== */
-const LS='lunch_user_last';
-(function loadLocal(){
-  try{
-    const o=JSON.parse(localStorage.getItem(LS)||'null');
-    if(o){ $name.value=o.name||''; $m1.value=o.p1||''; $m2.value=o.p2||''; $m3.value=o.p3||''; $date.value=o.date||$date.value; updateTodayTag(); updatePreview(); }
-  }catch(_){}
-})();
-function maybeSave(){
-  if(!$saveLocal.checked) return;
-  const o={name:$name.value,date:$date.value,p1:$m1.value,p2:$m2.value,p3:$m3.value};
-  localStorage.setItem(LS, JSON.stringify(o));
-}
-
-/* ===== 유틸 ===== */
 function trim(s){return String(s||'').trim();}
-function buildPayload(){
-  return {
-    version:'v1',
-    name: trim($name.value),
-    date: trim($date.value),
-    picks: [trim($m1.value), trim($m2.value), trim($m3.value)]
-  };
+function safeName(s){return trim(s).replace(/[^ㄱ-힣a-zA-Z0-9._-]+/g,'_');}
+
+/* ===== GitHub API helpers ===== */
+async function ghGetContent({owner,repo,path,ref,token}){
+  const url=`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(ref)}`;
+  const r=await fetch(url,{headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`}}); 
+  if(r.status===404) return null;
+  if(!r.ok) throw new Error(`GET ${path} 실패: ${r.status} ${r.statusText}`);
+  return r.json(); // includes sha
 }
-function updatePreview(){
-  const p=buildPayload();
-  $preview.textContent = JSON.stringify(p, null, 2);
+async function ghPutContent({owner,repo,path,branch,token,content,message,sha}){
+  const url=`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+  const body={message, branch, content: btoa(unescape(encodeURIComponent(content)))};
+  if(sha) body.sha=sha;
+  const r=await fetch(url,{
+    method:'PUT',
+    headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){
+    const t=await r.text();
+    throw new Error(`PUT 실패: ${r.status} ${r.statusText} — ${t}`);
+  }
+  return r.json(); // {content:{path,html_url}, commit:{...}}
 }
 
-/* ===== 이벤트 ===== */
-[$name,$m1,$m2,$m3,$date].forEach(el=>{
-  el.addEventListener('change', ()=>{ maybeSave(); updatePreview(); });
-  el.addEventListener('input', updatePreview);
-});
-$clear.addEventListener('click', ()=>{
-  $m1.value=$m2.value=$m3.value=''; updatePreview(); maybeSave();
-});
-$save.addEventListener('click', ()=>{
-  const payload=buildPayload();
-  if(!payload.name){ alert('이름을 입력하세요.'); return; }
-  if(!payload.date){ alert('날짜를 선택하세요.'); return; }
-  if(payload.picks.some(x=>!x)){ alert('메뉴 3개를 모두 입력하세요.'); return; }
-  const blob=new Blob([JSON.stringify(payload)], {type:'text/plain;charset=utf-8'});
-  const safeName=(payload.name||'noname').replace(/[^ㄱ-힣a-zA-Z0-9_-]+/g,'_');
+/* ===== Upload flow ===== */
+async function uploadToGitHub(){
+  $status.textContent='업로드 준비 중...';
+  $links.innerHTML='';
+  const name=trim($name.value);
+  const date=trim($date.value);
+  const picks=[trim($m1.value),trim($m2.value),trim($m3.value)];
+  if(!name || !date || picks.some(x=>!x)){ $status.innerHTML='<span class="err">이름·날짜·메뉴3 모두 입력하세요.</span>'; return; }
+
+  const owner=trim($owner.value)||'shem0304';
+  const repo=trim($repo.value)||'storygineer';
+  const branch=trim($branch.value)||'gh-pages';
+  const subdir=trim($subdir.value||'');
+  const token=trim($token.value);
+  if(!token){ $status.innerHTML='<span class="err">GitHub 토큰이 필요합니다.</span>'; return; }
+
+  const payload={version:'v1', name, date, picks};
+  const json=JSON.stringify(payload,null,2);
+  const fileName=`lunch_${date}_${safeName(name)}.json`;
+  const dir = subdir ? `${subdir.replace(/^\/|\/$/g,'')}/${date}` : `${date}`;
+  const path = `${dir}/${fileName}`;
+
+  try{
+    $status.textContent='파일 존재 여부 확인...';
+    const existed = await ghGetContent({owner,repo,path,ref:branch,token});
+    const sha = existed && existed.sha ? existed.sha : undefined;
+
+    $status.textContent= sha ? '기존 파일 업데이트 중...' : '신규 파일 업로드 중...';
+    const msg = sha ? `update: ${path}` : `add: ${path}`;
+    const res = await ghPutContent({owner,repo,path,branch,token,content:json,message:msg,sha});
+
+    const htmlUrl = res && res.content && res.content.html_url ? res.content.html_url : '';
+    // (가정) GitHub Pages에서 동일 브랜치/경로를 서비스할 때 접근 가능할 URL 추정
+    const pagesUrl = `https://${owner}.github.io/${repo}/${path}`;
+
+    $status.innerHTML = `<span class="ok">완료!</span> 커밋이 반영되면 Pages에서 접근 가능합니다.`;
+    $links.innerHTML = `
+      <div>• GitHub 파일 페이지: <a class="mono" target="_blank" rel="noopener" href="${htmlUrl}">${htmlUrl}</a></div>
+      <div>• (예상) Pages URL: <a class="mono" target="_blank" rel="noopener" href="${pagesUrl}">${pagesUrl}</a></div>
+      <div class="tiny warn" style="margin-top:6px">※ Pages 브랜치/디렉터리가 다르면 위 Pages URL이 바로 보이지 않을 수 있습니다. 프로젝트 Pages 설정(브랜치/폴더)을 확인하세요.</div>
+    `;
+  }catch(err){
+    console.error(err);
+    $status.innerHTML = `<span class="err">업로드 실패:</span> ${err.message}`;
+  }
+}
+
+/* ===== Local download fallback ===== */
+function downloadLocal(){
+  const name=trim($name.value);
+  const date=trim($date.value);
+  const picks=[trim($m1.value),trim($m2.value),trim($m3.value)];
+  if(!name || !date || picks.some(x=>!x)){ alert('이름·날짜·메뉴3 모두 입력하세요.'); return; }
+  const payload={version:'v1', name, date, picks};
+  const blob=new Blob([JSON.stringify(payload,null,2)], {type:'application/json;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`lunch_${payload.date}_${safeName}.txt`;
+  a.download=`lunch_${date}_${safeName(name)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+/* ===== Bind ===== */
+document.getElementById('upload').addEventListener('click', ()=>{
+  uploadToGitHub();
 });
-/* 초기 미리보기 */
-updatePreview();
+document.getElementById('download').addEventListener('click', ()=>{
+  downloadLocal();
+});
 </script>
 </body>
 </html>
