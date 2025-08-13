@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>[관리자용] 점심메뉴 집계 — 제출 토큰 취합 · 최다중복 선정</title>
+<title>[관리자용] 점심메뉴 집계 — 파일 불러오기 · 최다중복 선정</title>
 <style>
   :root{--bg:#0b0d12;--card:#111520;--mut:#2a2f3a;--text:#e8ecf3;--sub:#8b95a7;--acc:#4da3ff}
   *{box-sizing:border-box}
@@ -13,27 +13,28 @@
   h1{font-size:22px;margin:0 0 8px}
   .card{background:var(--card);border:1px solid var(--mut);border-radius:16px;padding:14px;margin-top:12px}
   label{font-weight:700}
-  input[type="date"],input[type="text"],textarea{width:100%;background:#0e1118;border:1px solid var(--mut);
+  input[type="date"],input[type="text"]{width:100%;background:#0e1118;border:1px solid var(--mut);
         color:var(--text);padding:10px 12px;border-radius:12px}
-  textarea{min-height:120px}
   .btn{appearance:none;border:1px solid var(--mut);background:#121826;color:var(--text);
        padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:700}
   .btn:hover{transform:translateY(-1px);border-color:var(--acc)}
   .btn.primary{background:var(--acc);color:#07121e;border-color:transparent}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .col{flex:1 1 280px}
+  .tiny{font-size:12px;color:var(--sub)}
   .tag{display:inline-block;border:1px solid var(--mut);padding:2px 8px;border-radius:999px;font-size:12px;color:var(--sub)}
   table{width:100%;border-collapse:collapse;margin-top:8px}
   th,td{border-bottom:1px solid #1d2330;padding:8px;text-align:left;vertical-align:top}
   th{color:var(--sub)}
-  .tiny{font-size:12px;color:var(--sub)}
+  #drop{border:2px dashed #2a2f3a;border-radius:12px;padding:14px;text-align:center}
+  #drop.drag{border-color:#4da3ff;background:#0e1522}
   .danger{color:#ff9a9a}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🍱 [관리자용] 점심메뉴 집계</h1>
-  <div class="tiny">흐름: 참가자가 <b>user 페이지</b>에서 토큰을 생성 → 이 화면에 붙여넣어 취합 → 최다중복 메뉴 산출</div>
+  <h1>🍱 [관리자용] 점심메뉴 집계 (파일 불러오기)</h1>
+  <div class="tiny">흐름: 참가자가 <b>user 파일</b>로 본인 제출을 저장 → 이 화면에서 <b>여러 .txt/.json 파일</b> 불러오기 → 최다중복 산출</div>
 
   <section class="card">
     <div class="row">
@@ -44,32 +45,29 @@
       </div>
       <div class="col" style="display:flex;align-items:flex-end;gap:8px">
         <button id="calc" class="btn primary">최다중복 계산</button>
-        <button id="exportJson" class="btn">JSON 내보내기</button>
-        <button id="clearAll" class="btn">모두 비우기</button>
+        <button id="exportJson" class="btn">현재 목록 JSON 내보내기</button>
+        <button id="clearAll" class="btn">목록 비우기</button>
       </div>
     </div>
   </section>
 
   <section class="card">
-    <label for="tokens">제출 토큰 붙여넣기 (여러 개 가능)</label>
-    <textarea id="tokens" placeholder="각 줄에 1개 토큰 또는 JSON. Base64 또는 순수 JSON 모두 허용."></textarea>
-    <div class="row" style="margin-top:8px">
-      <button id="ingest" class="btn">토큰 추가</button>
-      <input id="file" type="file" accept=".txt,.json" style="display:none">
-      <button id="loadFile" class="btn">파일에서 불러오기</button>
-      <button id="copyInvite" class="btn">사용자용 안내문 복사</button>
+    <div class="row">
+      <div class="col">
+        <label>제출 파일 불러오기 (.txt / .json, 다중 선택)</label>
+        <input id="files" type="file" accept=".txt,.json,application/json,text/plain" multiple>
+      </div>
     </div>
-    <div class="tiny" style="margin-top:6px">
-      형식: {"version":"v1","date":"YYYY-MM-DD","name":"홍길동","picks":["피자","파스타","샐러드"]} 또는 이를 Base64 인코딩한 문자열
-    </div>
+    <div id="drop" style="margin-top:10px">여기에 파일을 끌어다 놓아도 됩니다 (여러 개 가능)</div>
+    <div class="tiny" style="margin-top:6px">파일 내용 형식 (단일 JSON): {"version":"v1","date":"YYYY-MM-DD","name":"홍길동","picks":["피자","파스타","샐러드"]}</div>
   </section>
 
   <section class="card">
     <h3 style="margin:0 0 6px">제출 목록</h3>
-    <div class="tiny">중복 이름 허용. 같은 사람이 여러 번 제출했다면 최신 제출을 남기려면 기존 행을 삭제하세요.</div>
+    <div class="tiny">같은 사람이 여러 번 제출하면 최신 파일로 교체하려면 기존 행을 삭제하세요.</div>
     <table id="tbl">
       <thead>
-        <tr><th style="width:140px">이름</th><th>메뉴1</th><th>메뉴2</th><th>메뉴3</th><th style="width:90px">날짜</th><th style="width:80px">작업</th></tr>
+        <tr><th style="width:140px">이름</th><th>메뉴1</th><th>메뉴2</th><th>메뉴3</th><th style="width:110px">날짜</th><th style="width:80px">작업</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -83,40 +81,28 @@
 </div>
 
 <script>
-/* ===== 공용 유틸 (UTF-8 Base64, 시드 선택, 정규화) ===== */
-function b64encodeUtf8(s){return btoa(unescape(encodeURIComponent(s)));}
-function b64decodeUtf8(s){return decodeURIComponent(escape(atob(s)));}
-
-function cyrb128(str){
-  let h1=1779033703,h2=3144134277,h3=1013904242,h4=2773480762;
-  for(let i=0,k;i<str.length;i++){
-    k=str.charCodeAt(i);
-    h1=h2^Math.imul(h1^k,597399067);
-    h2=h3^Math.imul(h2^k,2869860233);
-    h3=h4^Math.imul(h3^k,951274213);
-    h4=h1^Math.imul(h4^k,2716044179);
-  }
-  h1=Math.imul(h3^(h1>>>18),597399067);
-  h2=Math.imul(h4^(h2>>>22),2869860233);
-  h3=Math.imul(h1^(h3>>>17),951274213);
-  h4=Math.imul(h2^(h4>>>19),2716044179);
-  return [(h1^h2^h3^h4)>>>0,(h2^h1)>>>0,(h3^h1)>>>0,(h4^h1)>>>0];
-}
+/* ===== 시드/정규화 유틸 ===== */
+function cyrb128(str){let h1=1779033703,h2=3144134277,h3=1013904242,h4=2773480762;
+  for(let i=0,k;i<str.length;i++){k=str.charCodeAt(i);
+    h1=h2^Math.imul(h1^k,597399067);h2=h3^Math.imul(h2^k,2869860233);
+    h3=h4^Math.imul(h3^k,951274213);h4=h1^Math.imul(h4^k,2716044179);}
+  h1=Math.imul(h3^(h1>>>18),597399067);h2=Math.imul(h4^(h2>>>22),2869860233);
+  h3=Math.imul(h1^(h3>>>17),951274213);h4=Math.imul(h2^(h4>>>19),2716044179);
+  return [(h1^h2^h3^h4)>>>0,(h2^h1)>>>0,(h3^h1)>>>0,(h4^h1)>>>0];}
 function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
-function seededChoice(arr, seedStr){if(arr.length===1) return arr[0]; const seed=cyrb128(seedStr)[0]; const r=mulberry32(seed)(); return arr[Math.floor(r*arr.length)];}
+function seededChoice(arr,seedStr){if(arr.length===1) return arr[0]; const seed=cyrb128(seedStr)[0]; const r=mulberry32(seed)(); return arr[Math.floor(r*arr.length)];}
 function normalizeMenu(s){return s.trim().replace(/\s+/g,' ').toLowerCase();}
 
 /* ===== 상태 ===== */
 let submissions = []; // {name, picks:[a,b,c], date}
 
 /* ===== 날짜 기본값(Seoul) ===== */
-const $date = document.getElementById('date');
-const $todayTag = document.getElementById('todayTag');
+const $date=document.getElementById('date');
+const $todayTag=document.getElementById('todayTag');
 (function initDate(){
   const now=new Date(); const tz=now.getTimezoneOffset(); const seoul=-9*60;
   const d=new Date(now.getTime() + (seoul - tz)*60000);
-  $date.value = d.toISOString().slice(0,10);
-  updateTodayTag();
+  $date.value = d.toISOString().slice(0,10); updateTodayTag();
 })();
 function updateTodayTag(){
   const ds=$date.value; if(!ds){ $todayTag.textContent='날짜 미지정'; return }
@@ -125,32 +111,28 @@ function updateTodayTag(){
 }
 
 /* ===== DOM ===== */
-const $tokens = document.getElementById('tokens');
-const $ingest = document.getElementById('ingest');
-const $tblBody = document.querySelector('#tbl tbody');
-const $calc = document.getElementById('calc');
-const $resultBox = document.getElementById('resultBox');
-const $freqBox = document.getElementById('freqBox');
-const $clearAll = document.getElementById('clearAll');
-const $exportJson = document.getElementById('exportJson');
-const $loadFile = document.getElementById('loadFile');
-const $file = document.getElementById('file');
-const $copyInvite = document.getElementById('copyInvite');
+const $files=document.getElementById('files');
+const $drop=document.getElementById('drop');
+const $tblBody=document.querySelector('#tbl tbody');
+const $calc=document.getElementById('calc');
+const $resultBox=document.getElementById('resultBox');
+const $freqBox=document.getElementById('freqBox');
+const $clearAll=document.getElementById('clearAll');
+const $exportJson=document.getElementById('exportJson');
 
 /* ===== 렌더 ===== */
 function renderTable(){
   $tblBody.innerHTML='';
   submissions.forEach((s,idx)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML = `
+    tr.innerHTML=`
       <td>${s.name}</td>
       <td>${s.picks[0]||''}</td>
       <td>${s.picks[1]||''}</td>
       <td>${s.picks[2]||''}</td>
       <td>${s.date}</td>
-      <td><button data-idx="${idx}" class="btn" style="padding:6px 10px">삭제</button></td>
-    `;
-    tr.querySelector('button').addEventListener('click', e=>{
+      <td><button data-idx="${idx}" class="btn" style="padding:6px 10px">삭제</button></td>`;
+    tr.querySelector('button').addEventListener('click',e=>{
       const i=parseInt(e.target.getAttribute('data-idx'),10);
       submissions.splice(i,1); renderTable();
     });
@@ -158,42 +140,59 @@ function renderTable(){
   });
 }
 
-/* ===== 토큰 파서 ===== */
-function parseTokenLine(line){
-  line=line.trim();
-  if(!line) return null;
-  try{
-    // JSON로 직접 들어온 경우
-    if(line.startsWith('{')) return JSON.parse(line);
-    // Base64 -> JSON
-    const json = b64decodeUtf8(line);
-    return JSON.parse(json);
-  }catch(e){
-    throw new Error('토큰/JSON 해석 실패: ' + line.slice(0,50));
-  }
+/* ===== 파일 로딩 ===== */
+async function readFileAsText(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+    r.readAsText(file,'utf-8');
+  });
 }
 function validateSubmission(obj){
   if(!obj || obj.version!=='v1') throw new Error('version=v1 필요');
   if(!obj.name || !obj.date || !Array.isArray(obj.picks) || obj.picks.length!==3)
     throw new Error('필드(name,date,picks[3]) 누락');
-  // 간단 정제
-  obj.name = String(obj.name).trim();
-  obj.picks = obj.picks.map(x=> String(x||'').trim());
-  return obj;
+  return {name:String(obj.name).trim(), date:String(obj.date).trim(),
+          picks:obj.picks.map(x=>String(x||'').trim())};
 }
+async function handleFiles(fileList){
+  let ok=0, fail=[];
+  for(const f of fileList){
+    try{
+      const txt=await readFileAsText(f);
+      const obj=JSON.parse(txt);
+      const v=validateSubmission(obj);
+      submissions.push(v); ok++;
+    }catch(e){ fail.push(`${f.name}: ${e.message}`); }
+  }
+  renderTable();
+  if(fail.length) alert(`불러옴: ${ok}건, 실패: ${fail.length}건\n— ${fail.slice(0,5).join('\n')}${fail.length>5?'\n…':''}`);
+}
+$files.addEventListener('change', e=>{
+  if(e.target.files && e.target.files.length) handleFiles(e.target.files);
+});
+['dragenter','dragover'].forEach(evt=>{
+  $drop.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); $drop.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt=>{
+  $drop.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); $drop.classList.remove('drag'); });
+});
+$drop.addEventListener('drop', e=>{
+  const files=e.dataTransfer.files; if(files && files.length) handleFiles(files);
+});
 
 /* ===== 계산 ===== */
 function computeWinner(targetDate){
-  const filtered = submissions.filter(s => s.date === targetDate);
+  const filtered=submissions.filter(s=>s.date===targetDate);
   if(!filtered.length) throw new Error('해당 날짜 제출이 없습니다.');
   const entries=[];
-  filtered.forEach(s => s.picks.forEach(x=>{
-    if(x) entries.push({raw:x, norm:normalizeMenu(x)});
-  }));
+  filtered.forEach(s=> s.picks.forEach(x=>{ if(x) entries.push({raw:x, norm:normalizeMenu(x)}); }));
   if(!entries.length) throw new Error('제출 내역에 메뉴가 비어 있습니다.');
-  const freq = new Map(); // norm -> {count, raw:Set}
+
+  const freq=new Map(); // norm -> {count, raw:Set}
   entries.forEach(e=>{
-    if(!freq.has(e.norm)) freq.set(e.norm,{count:0, raw:new Set()});
+    if(!freq.has(e.norm)) freq.set(e.norm,{count:0,raw:new Set()});
     const f=freq.get(e.norm); f.count++; f.raw.add(e.raw);
   });
   let max=0, tops=[];
@@ -201,97 +200,41 @@ function computeWinner(targetDate){
     if(info.count>max){ max=info.count; tops=[{norm,info}] }
     else if(info.count===max){ tops.push({norm,info}) }
   }
-  const candidates = tops.map(x=>({display:[...x.info.raw][0], count:x.info.count}));
-  const winner = seededChoice(candidates, `${targetDate}|lunch-majority|v1`);
-  const table = [...freq.entries()].map(([norm,info])=>({display:[...info.raw][0], count:info.count}))
-                .sort((a,b)=> b.count-a.count || a.display.localeCompare(b.display,'ko'));
+  const candidates=tops.map(x=>({display:[...x.info.raw][0], count:x.info.count}));
+  const winner=seededChoice(candidates, `${targetDate}|lunch-majority|v1`);
+  const table=[...freq.entries()].map(([norm,info])=>({display:[...info.raw][0], count:info.count}))
+               .sort((a,b)=> b.count-a.count || a.display.localeCompare(b.display,'ko'));
   return {winner, table, voters: filtered.length, totalVotes: filtered.length*3};
 }
 
 /* ===== 이벤트 ===== */
-$ingest.addEventListener('click', ()=>{
-  const lines=$tokens.value.split(/\r?\n/).filter(Boolean);
-  let ok=0, fail=[];
-  lines.forEach(line=>{
-    try{
-      const obj=validateSubmission(parseTokenLine(line));
-      submissions.push({name: obj.name, picks: obj.picks, date: obj.date});
-      ok++;
-    }catch(e){ fail.push(e.message); }
-  });
-  $tokens.value='';
-  renderTable();
-  if(fail.length) alert(`추가됨: ${ok}건, 실패: ${fail.length}건\n— ${fail.slice(0,5).join('\n')}${fail.length>5?'\n…':''}`);
-});
-
 $calc.addEventListener('click', ()=>{
-  const ds=$date.value;
-  if(!ds){ alert('날짜를 지정하세요.'); return; }
+  const ds=$date.value; if(!ds){ alert('날짜를 지정하세요.'); return; }
   try{
     const res=computeWinner(ds);
     $resultBox.innerHTML = `
       <div style="font-size:20px;font-weight:900;margin-bottom:6px">🏆 오늘의 메뉴: 🍽️ ${res.winner.display}</div>
-      <div class="tiny">득표 ${res.winner.count} / 총 ${res.totalVotes} (참가자 ${res.voters}명 · 1인 3표)</div>
-    `;
-    const rows = res.table.map(r=>`<tr><td>${r.display}</td><td>${r.count}</td></tr>`).join('');
-    $freqBox.innerHTML = `<table><thead><tr><th>메뉴</th><th>표 수</th></tr></thead><tbody>${rows}</tbody></table>`;
-    // 요약 복사 버튼 동작 대체: 결과 텍스트를 클릭하면 복사
+      <div class="tiny">득표 ${res.winner.count} / 총 ${res.totalVotes} (참가자 ${res.voters}명 · 1인 3표)</div>`;
+    const rows=res.table.map(r=>`<tr><td>${r.display}</td><td>${r.count}</td></tr>`).join('');
+    $freqBox.innerHTML=`<table><thead><tr><th>메뉴</th><th>표 수</th></tr></thead><tbody>${rows}</tbody></table>`;
     $resultBox.style.cursor='copy';
     $resultBox.onclick=async ()=>{
-      const text = `(${ds}) 오늘의 점심: ${res.winner.display} — 최다중복`;
+      const text=`(${ds}) 오늘의 점심: ${res.winner.display} — 최다중복`;
       try{ await navigator.clipboard.writeText(text); alert('결과 요약을 복사했습니다.'); }catch(_){}
     };
   }catch(e){
     $resultBox.innerHTML = `<span class="danger">오류: ${e.message}</span>`;
-    $freqBox.innerHTML = '';
+    $freqBox.innerHTML='';
   }
 });
-
 $clearAll.addEventListener('click', ()=>{
-  if(confirm('모든 제출을 비울까요?')){ submissions=[]; renderTable(); $resultBox.textContent='초기화됨'; $freqBox.innerHTML=''; }
+  if(confirm('목록을 모두 비울까요?')){ submissions=[]; renderTable(); $resultBox.textContent='초기화됨'; $freqBox.innerHTML=''; }
 });
-
 $exportJson.addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(submissions,null,2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
+  const blob=new Blob([JSON.stringify(submissions,null,2)], {type:'application/json'});
+  const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='lunch_submissions.json'; a.click();
   URL.revokeObjectURL(url);
-});
-
-$loadFile.addEventListener('click', ()=> $file.click());
-$file.addEventListener('change', ()=>{
-  const f=$file.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{
-    try{
-      const txt=r.result;
-      // JSON 배열 / 줄단위 토큰 둘 다 허용
-      if(txt.trim().startsWith('[')){
-        const arr=JSON.parse(txt);
-        arr.forEach(o=>{
-          const v=validateSubmission(o);
-          submissions.push({name:v.name,picks:v.picks,date:v.date});
-        });
-      }else{
-        txt.split(/\r?\n/).forEach(line=>{
-          if(!line.trim()) return;
-          const o=validateSubmission(parseTokenLine(line));
-          submissions.push({name:o.name,picks:o.picks,date:o.date});
-        });
-      }
-      renderTable();
-    }catch(e){ alert('불러오기 실패: '+e.message); }
-  };
-  r.readAsText(f,'utf-8');
-});
-
-$copyInvite.addEventListener('click', async ()=>{
-  const msg =
-`[사용자용 안내]
-1) 'lunch_user.html'을 열어 이름과 오늘 날짜, 메뉴 3개를 입력합니다.
-2) "제출 토큰 만들기"를 눌러 생성된 토큰을 복사합니다.
-3) 이 채널/양식에 토큰을 붙여 제출하세요. (한 줄 1개)`;
-  try{ await navigator.clipboard.writeText(msg); alert('안내문을 복사했습니다.'); }catch(_){}
 });
 
 /* 초기 렌더 */
