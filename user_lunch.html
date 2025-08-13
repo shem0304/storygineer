@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>[사용자용] 점심메뉴 제출 — GitHub 자동 업로드</title>
+<title>[사용자용] 점심메뉴 제출 — GitHub 자동 업로드 (토큰 사용)</title>
 <style>
   :root{--bg:#0b0d12;--card:#111520;--mut:#2a2f3a;--text:#e8ecf3;--sub:#8b95a7;--acc:#4da3ff}
   *{box-sizing:border-box}
@@ -53,11 +53,20 @@
     </div>
     <div class="row" style="margin-top:8px">
       <div class="col"><label for="subdir">업로드 하위 경로(선택)</label><input id="subdir" type="text" value="submissions" placeholder="예: submissions / docs/submissions"></div>
-      <div class="col"><label for="token">GitHub 토큰 (repo contents 권한)</label><input id="token" type="password" placeholder="PAT 토큰 입력 (저장되지 않음)"></div>
+      <div class="col">
+        <label for="token">GitHub 토큰 (Contents: Read & Write)</label>
+        <input id="token" type="password" placeholder="Fine-grained PAT 입력 (저장 안 함)">
+        <div class="tiny" style="margin-top:6px;display:flex;gap:10px;align-items:center">
+          <label style="display:flex;align-items:center;gap:6px"><input id="rememberToken" type="checkbox">이 토큰을 <b>이 브라우저 탭</b>에만 기억</label>
+          <button id="testToken" class="btn" style="padding:6px 10px">토큰 검증</button>
+          <button id="logoutToken" class="btn" style="padding:6px 10px">토큰 지우기</button>
+        </div>
+      </div>
     </div>
     <div class="tiny" style="margin-top:6px">
-      • 토큰은 <b>브라우저 메모리에서만 사용</b>하고 저장하지 않습니다. 안전을 위해 <b>fine-grained PAT</b>로 해당 저장소에 <b>Contents: Read & Write</b> 권한만 부여하세요.<br>
-      • GitHub Pages가 <span class="mono">gh-pages</span>가 아닌 <span class="mono">main/docs</span>을 쓰면 Branch를 <span class="mono">main</span>, 경로를 <span class="mono">docs/submissions</span> 등으로 바꾸세요.
+      • 토큰은 콘솔/DOM에 기록하지 않으며, <b>옵션을 켠 경우</b>에만 sessionStorage에 저장됩니다(탭 종료 시 삭제).<br>
+      • 권장: <b>Fine-grained PAT</b> · Repository: <span class="mono">storygineer</span> 선택 · Permissions → <b>Contents: Read & Write</b>.<br>
+      • Pages가 <span class="mono">main/docs</span>면 Branch=<span class="mono">main</span>, 경로=<span class="mono">docs/submissions</span> 등으로 맞추세요.
     </div>
   </section>
 
@@ -104,10 +113,22 @@ const $repo=document.getElementById('repo');
 const $branch=document.getElementById('branch');
 const $subdir=document.getElementById('subdir');
 const $token=document.getElementById('token');
+const $rememberToken=document.getElementById('rememberToken');
+const $testToken=document.getElementById('testToken');
+const $logoutToken=document.getElementById('logoutToken');
 const $upload=document.getElementById('upload');
 const $download=document.getElementById('download');
 const $status=document.getElementById('status');
 const $links=document.getElementById('links');
+
+/* ===== 토큰 세션 저장 도우미 ===== */
+const TOKEN_KEY='__lunch_pat_session__';
+function setSessionToken(tok){ try{ sessionStorage.setItem(TOKEN_KEY, tok || ''); }catch(_){} }
+function getSessionToken(){ try{ return sessionStorage.getItem(TOKEN_KEY) || ''; }catch(_){ return '' } }
+(function loadToken(){
+  const t=getSessionToken();
+  if(t){ $token.value=t; $rememberToken.checked=true; }
+})();
 
 function trim(s){return String(s||'').trim();}
 function safeName(s){return trim(s).replace(/[^ㄱ-힣a-zA-Z0-9._-]+/g,'_');}
@@ -115,7 +136,7 @@ function safeName(s){return trim(s).replace(/[^ㄱ-힣a-zA-Z0-9._-]+/g,'_');}
 /* ===== GitHub API helpers ===== */
 async function ghGetContent({owner,repo,path,ref,token}){
   const url=`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(ref)}`;
-  const r=await fetch(url,{headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`}}); 
+  const r=await fetch(url,{headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`}});
   if(r.status===404) return null;
   if(!r.ok) throw new Error(`GET ${path} 실패: ${r.status} ${r.statusText}`);
   return r.json(); // includes sha
@@ -135,11 +156,47 @@ async function ghPutContent({owner,repo,path,branch,token,content,message,sha}){
   }
   return r.json(); // {content:{path,html_url}, commit:{...}}
 }
+async function ghRepoReadme({owner,repo,token}){ // 토큰 검증용(권한 체크)
+  const url=`https://api.github.com/repos/${owner}/${repo}/readme`;
+  const r=await fetch(url,{headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`}});
+  return r;
+}
+
+/* ===== 토큰 검증/관리 ===== */
+async function testToken(){
+  $status.textContent='토큰 검증 중...';
+  $links.innerHTML='';
+  const owner=trim($owner.value)||'shem0304';
+  const repo=trim($repo.value)||'storygineer';
+  const token=trim($token.value) || getSessionToken();
+  if(!token){ $status.innerHTML='<span class="err">토큰을 입력하세요.</span>'; return; }
+  try{
+    const r=await ghRepoReadme({owner,repo,token});
+    if(r.status===200){
+      $status.innerHTML='<span class="ok">토큰 확인 완료.</span> 이 저장소에 접근 가능합니다. (쓰기 권한은 업로드 시 최종 확인)';
+      if($rememberToken.checked) setSessionToken(token);
+    }else if(r.status===404){
+      $status.innerHTML='<span class="warn">접근 실패.</span> 저장소가 없거나 권한이 없습니다.';
+    }else if(r.status===401){
+      $status.innerHTML='<span class="err">인증 실패.</span> 토큰이 잘못되었거나 만료되었습니다.';
+    }else{
+      $status.innerHTML=`<span class="warn">응답 ${r.status}.</span> 권한/설정을 확인하세요.`;
+    }
+  }catch(e){
+    $status.innerHTML=`<span class="err">검증 오류:</span> ${e.message}`;
+  }
+}
+function logoutToken(){
+  $token.value='';
+  setSessionToken('');
+  $status.innerHTML='<span class="ok">토큰을 이 탭에서 제거했습니다.</span>';
+}
 
 /* ===== Upload flow ===== */
 async function uploadToGitHub(){
   $status.textContent='업로드 준비 중...';
   $links.innerHTML='';
+
   const name=trim($name.value);
   const date=trim($date.value);
   const picks=[trim($m1.value),trim($m2.value),trim($m3.value)];
@@ -149,8 +206,9 @@ async function uploadToGitHub(){
   const repo=trim($repo.value)||'storygineer';
   const branch=trim($branch.value)||'gh-pages';
   const subdir=trim($subdir.value||'');
-  const token=trim($token.value);
+  const token=trim($token.value) || getSessionToken();
   if(!token){ $status.innerHTML='<span class="err">GitHub 토큰이 필요합니다.</span>'; return; }
+  if($rememberToken.checked) setSessionToken(token);
 
   const payload={version:'v1', name, date, picks};
   const json=JSON.stringify(payload,null,2);
@@ -167,19 +225,18 @@ async function uploadToGitHub(){
     const msg = sha ? `update: ${path}` : `add: ${path}`;
     const res = await ghPutContent({owner,repo,path,branch,token,content:json,message:msg,sha});
 
-    const htmlUrl = res && res.content && res.content.html_url ? res.content.html_url : '';
-    // (가정) GitHub Pages에서 동일 브랜치/경로를 서비스할 때 접근 가능할 URL 추정
+    const htmlUrl = res?.content?.html_url || '';
     const pagesUrl = `https://${owner}.github.io/${repo}/${path}`;
 
-    $status.innerHTML = `<span class="ok">완료!</span> 커밋이 반영되면 Pages에서 접근 가능합니다.`;
+    $status.innerHTML = `<span class="ok">완료!</span> 커밋 반영 후 Pages에서 접근 가능합니다.`;
     $links.innerHTML = `
       <div>• GitHub 파일 페이지: <a class="mono" target="_blank" rel="noopener" href="${htmlUrl}">${htmlUrl}</a></div>
       <div>• (예상) Pages URL: <a class="mono" target="_blank" rel="noopener" href="${pagesUrl}">${pagesUrl}</a></div>
-      <div class="tiny warn" style="margin-top:6px">※ Pages 브랜치/디렉터리가 다르면 위 Pages URL이 바로 보이지 않을 수 있습니다. 프로젝트 Pages 설정(브랜치/폴더)을 확인하세요.</div>
+      <div class="tiny warn" style="margin-top:6px">※ Pages 브랜치/디렉터리 설정에 따라 URL이 다를 수 있습니다.</div>
     `;
   }catch(err){
-    console.error(err);
-    $status.innerHTML = `<span class="err">업로드 실패:</span> ${err.message}`;
+    $status.innerHTML = `<span class="err">업로드 실패:</span> ${err.message}<br>
+      <span class="tiny">권한(Contents: Read & Write), 브랜치명, 경로, 브랜치 보호 설정을 확인하세요.</span>`;
   }
 }
 
@@ -199,12 +256,10 @@ function downloadLocal(){
 }
 
 /* ===== Bind ===== */
-document.getElementById('upload').addEventListener('click', ()=>{
-  uploadToGitHub();
-});
-document.getElementById('download').addEventListener('click', ()=>{
-  downloadLocal();
-});
+document.getElementById('upload').addEventListener('click', uploadToGitHub);
+document.getElementById('download').addEventListener('click', downloadLocal);
+$testToken.addEventListener('click', testToken);
+$logoutToken.addEventListener('click', logoutToken);
 </script>
 </body>
 </html>
