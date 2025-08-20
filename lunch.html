@@ -6,7 +6,7 @@
   <title>점심메뉴 선택기</title>
   <style>
     :root{
-      --bg:#0b1020; /* deep slate */
+      --bg:#0b1020;
       --card:#121834;
       --muted:#9aa3b2;
       --text:#e9edf5;
@@ -42,6 +42,7 @@
     button{
       appearance:none; border:none; cursor:pointer; border-radius:14px; padding:12px 16px; font-weight:700; color:#0b1020;
       transition:transform .04s ease, filter .2s ease, box-shadow .2s ease; box-shadow:0 6px 16px rgba(0,0,0,.25);
+      font-size:14px;
     }
     button:hover{filter:brightness(1.05)}
     button:active{transform:translateY(1px)}
@@ -56,22 +57,31 @@
     .panel{background:rgba(18,24,52,.7); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:16px}
     .panel h3{margin:0 0 12px; font-size:16px; color:#cbd6ff}
 
-    .menu-list{display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px}
+    .menu-list{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:8px}
     .item{
-      display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.04);
+      display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,.04);
       border:1px solid rgba(255,255,255,.06);
+      font-size:14px;
     }
     .item input{accent-color:var(--accent)}
 
     .toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px}
 
     .history{display:flex; flex-direction:column; gap:8px}
-    .pill{display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); padding:8px 12px; border-radius:999px; width:fit-content}
+    .pill{display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); padding:6px 10px; border-radius:999px; width:fit-content; font-size:13px}
     .pill small{color:var(--muted)}
 
     .kbd{border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.06); padding:2px 6px; border-radius:6px; font-size:12px}
     .footer{color:var(--muted); font-size:12px; margin-top:8px}
     .spacer{flex:1}
+
+    @media (max-width: 600px){
+      header{flex-direction:column; align-items:stretch; gap:12px}
+      .spacer{display:none}
+      .controls{width:100%; display:grid; grid-template-columns:1fr; gap:8px}
+      .controls button{width:100%}
+      .result{flex-direction:column; align-items:flex-start}
+    }
   </style>
 </head>
 <body>
@@ -82,10 +92,10 @@
         <div class="sub">체크된 메뉴 중 하나를 랜덤으로 골라드려요. <span class="kbd">R</span> 키로도 추천!</div>
         <div class="spacer"></div>
         <div class="controls">
-          <button id="btn-pick" class="primary" title="선택된 메뉴 중에서 추천">랜덤 추천</button>
-          <button id="btn-reroll" class="ghost" title="방금 추천에서 다시">다시 뽑기</button>
-          <button id="btn-copy" class="secondary" title="추천 결과 복사">결과 복사</button>
-          <button id="btn-reset" class="danger" title="제외 초기화">제외 초기화</button>
+          <button id="btn-pick" class="primary">🎲 랜덤 추천</button>
+          <button id="btn-reroll" class="ghost">🔄 다시 뽑기</button>
+          <button id="btn-copy" class="secondary">📋 결과 복사</button>
+          <button id="btn-reset" class="danger">♻ 제외 초기화</button>
         </div>
       </header>
 
@@ -160,14 +170,12 @@
         `;
         listEl.appendChild(item);
       });
-      // Persist on change
       listEl.addEventListener('change', persistChecked, {once:true});
     }
 
     function persistChecked(){
       const states = $$('.item input', listEl).map(chk => chk.checked);
       saveChecked(states);
-      // reattach after first event listener is consumed
       listEl.addEventListener('change', persistChecked, {once:true});
     }
 
@@ -179,12 +187,11 @@
     }
 
     function animatePick(candidates, final){
-      const duration = 1000; // ms
+      const duration = 1000;
       const start = performance.now();
       let raf;
       function step(t){
         const p = Math.min(1, (t - start) / duration);
-        // Ease-out
         const eased = 1 - Math.pow(1 - p, 3);
         const idx = Math.floor(eased * 24) % candidates.length;
         pickedEl.textContent = candidates[idx] + '…';
@@ -228,7 +235,6 @@
       });
     }
 
-    // Controls
     $('#btn-pick').addEventListener('click', ()=>{
       const c = pick();
       addHistory(c);
@@ -269,12 +275,10 @@
       persistChecked();
     });
 
-    // Keyboard shortcut: R to pick
     document.addEventListener('keydown', (e)=>{
       if(e.key.toLowerCase() === 'r'){ $('#btn-pick').click(); }
     });
 
-    // Init
     renderList();
     renderHistory();
   </script>
