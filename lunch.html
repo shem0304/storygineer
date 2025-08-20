@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>점심메뉴 선택기</title>
   <style>
     :root{
@@ -15,7 +15,7 @@
       --danger:#ff6b6b;
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
+    html,body{$1 -webkit-text-size-adjust:100%; padding: max(24px, calc(24px + env(safe-area-inset-top))); padding-left: max(24px, calc(24px + env(safe-area-inset-left))); padding-right: max(24px, calc(24px + env(safe-area-inset-right))); }
     body{
       margin:0; background:linear-gradient(180deg, #0b1020, #0a0f1a 40%, #0b1020);
       color:var(--text); font-family:-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo','Noto Sans KR', Segoe UI, Roboto, Helvetica, Arial, "맑은 고딕", sans-serif;
