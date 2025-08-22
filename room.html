@@ -304,6 +304,13 @@
                     <button type="button" class="btn" onclick="document.getElementById('fileInput').click()">📂 파일 불러오기</button>
                 </div>
 
+                <div class="today-summary" id="todaySummary" style="background: #e8f5e8; padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #4CAF50;">
+                    <h3 style="color: #2e7d32; margin-bottom: 10px;">📅 오늘 예약 현황</h3>
+                    <div id="todayReservations" style="color: #1b5e20; font-weight: 500;">
+                        오늘 예약된 회의실이 없습니다.
+                    </div>
+                </div>
+
                 <div id="reservationList" class="reservation-list">
                     <div style="text-align: center; color: #999; padding: 40px;">
                         등록된 예약이 없습니다.<br>
@@ -321,6 +328,7 @@
         // 페이지 로드 시 기존 예약 데이터 불러오기
         document.addEventListener('DOMContentLoaded', function() {
             loadReservations();
+            updateTodaySummary();
             
             // 오늘 날짜를 기본값으로 설정
             const today = new Date();
@@ -365,6 +373,7 @@
             
             // 화면 업데이트
             displayReservations();
+            updateTodaySummary();
             
             // 폼 초기화
             this.reset();
@@ -393,6 +402,47 @@
                 // 시간 겹침 검사
                 return (newStart < existingEnd && newEnd > existingStart);
             });
+        }
+
+        // 오늘 예약 현황 업데이트
+        function updateTodaySummary() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayReservations = reservations.filter(r => r.reservationDate === today);
+            const todayElement = document.getElementById('todayReservations');
+            
+            if (todayReservations.length === 0) {
+                todayElement.innerHTML = '오늘 예약된 회의실이 없습니다.';
+                return;
+            }
+            
+            // 시간 순으로 정렬
+            const sortedTodayReservations = todayReservations.sort((a, b) => {
+                return a.reservationTime.localeCompare(b.reservationTime);
+            });
+            
+            const todayHtml = sortedTodayReservations.map(reservation => {
+                const endTime = calculateEndTime(reservation.reservationTime, reservation.duration);
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #c8e6c9;">
+                        <div>
+                            <strong>${reservation.meetingName}</strong><br>
+                            <span style="font-size: 0.9em; color: #4caf50;">
+                                ${reservation.reservationTime} - ${endTime} | ${reservation.reserverName}
+                            </span>
+                        </div>
+                        <div style="text-align: right; font-size: 0.8em; color: #666;">
+                            ${reservation.reserverDept}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            todayElement.innerHTML = `
+                <div style="margin-bottom: 5px; font-size: 0.9em; color: #2e7d32;">
+                    총 ${todayReservations.length}개의 회의가 예약되어 있습니다.
+                </div>
+                ${todayHtml}
+            `;
         }
 
         // 예약 목록 표시
@@ -469,6 +519,7 @@
                 reservations = reservations.filter(r => r.id !== id);
                 saveToFile();
                 displayReservations();
+                updateTodaySummary();
                 showStatus('예약이 삭제되었습니다.', 'success');
             }
         }
@@ -479,6 +530,7 @@
                 reservations = [];
                 saveToFile();
                 displayReservations();
+                updateTodaySummary();
                 showStatus('모든 예약이 삭제되었습니다.', 'success');
             }
         }
@@ -537,6 +589,7 @@
 
                     reservations = loadedReservations;
                     displayReservations();
+                    updateTodaySummary();
                     showStatus(`${loadedReservations.length}개의 예약이 불러와졌습니다.`, 'success');
                 } catch (error) {
                     showStatus('파일을 읽는 중 오류가 발생했습니다.', 'error');
@@ -550,6 +603,7 @@
             // 실제 환경에서는 서버에서 데이터를 불러오거나
             // 로컬 스토리지에서 불러올 수 있습니다
             displayReservations();
+            updateTodaySummary();
         }
 
         // 상태 메시지 표시
