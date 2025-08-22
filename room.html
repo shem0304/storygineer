@@ -1,278 +1,448 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>울산연구원 3층 회의실 예약관리</title>
   <style>
-    :root { --bg:#f7f7fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --pri:#2563eb; --pri-ink:#fff; --line:#e5e7eb; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color:var(--ink); background:var(--bg); }
-    .wrap { max-width: 980px; margin: 24px auto 80px; padding: 0 16px; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
-    h1 { font-size: 20px; margin: 0; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow: 0 6px 24px rgba(0,0,0,.06); }
-    .form { padding:16px; display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    .form .full { grid-column: 1/-1; }
-    label { display:block; font-size: 12px; color:var(--muted); margin-bottom:6px; }
-    input[type="text"], input[type="datetime-local"], input[type="search"] { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:14px; background:#fff; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; }
-    button { appearance:none; border:none; border-radius:10px; padding:10px 14px; font-size:14px; cursor:pointer; }
-    .btn { background:var(--pri); color:var(--pri-ink); }
-    .btn.sec { background:#e5e7eb; color:#111827; }
-    .btn.ghost { background:transparent; color:var(--muted); }
-    .toolbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-top:1px solid var(--line); }
-    .table-wrap { overflow:auto; border-top:1px solid var(--line); }
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --card: #111827; /* gray-900 */
+      --muted: #94a3b8; /* slate-400 */
+      --text: #e5e7eb; /* gray-200 */
+      --accent: #38bdf8; /* sky-400 */
+      --ok: #22c55e; /* green-500 */
+      --bad: #ef4444; /* red-500 */
+      --warn: #f59e0b; /* amber-500 */
+      --border: #1f2937; /* gray-800 */
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, "맑은 고딕", sans-serif;
+      background: linear-gradient(120deg, #0b1020, #0a142c 55%, #0b1020);
+      color: var(--text);
+    }
+    .wrap { max-width: 1100px; margin: 24px auto 80px; padding: 0 16px; }
+    h1 { font-size: 24px; margin: 12px 0 20px; display:flex; align-items:center; gap:10px; }
+    .badge { font-size: 12px; color: var(--bg); background: var(--accent); padding: 2px 8px; border-radius: 999px; }
+
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; align-items:center; }
+    .toolbar button, .toolbar .right button { 
+      background:#0b2540; color:#dbeafe; border:1px solid #1e3a8a; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:600; 
+    }
+    .toolbar button:hover { filter: brightness(1.1); }
+    .toolbar .right { margin-left:auto; display:flex; gap:10px; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+    .grid { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; align-items:start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background: rgba(17,24,39,.7); backdrop-filter: blur(6px); border:1px solid var(--border); border-radius:16px; }
+    .card h2 { font-size:18px; margin: 0 0 10px; }
+    .card .inner { padding:16px; }
+
+    .form { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .form label { font-size:12px; color: var(--muted); display:block; margin-bottom:6px; }
+    .form input, .form select, .form textarea { width:100%; box-sizing:border-box; 
+      background:#0b1020; color: var(--text); border:1px solid var(--border); border-radius:12px; padding:10px; }
+    .form textarea { min-height:72px; grid-column: 1 / -1; resize: vertical; }
+    .form .row { display:flex; gap:12px; }
+    .form .full { grid-column: 1 / -1; }
+    .form .actions { display:flex; gap:10px; }
+    .btn-primary { background:#0b2540; color:#dbeafe; border:1px solid #1e3a8a; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; }
+    .btn-secondary { background:transparent; color:#cbd5e1; border:1px dashed #334155; padding:10px 12px; border-radius:12px; cursor:pointer; }
+    .btn-danger { background:#2a0b10; color:#fecaca; border:1px solid #7f1d1d; padding:10px 12px; border-radius:12px; cursor:pointer; }
+
+    .table-wrap { overflow:auto; max-height: 60vh; }
     table { width:100%; border-collapse: collapse; }
-    th, td { padding:12px 10px; text-align:left; border-bottom:1px solid var(--line); font-size: 14px; }
-    th { background:#fafafa; position:sticky; top:0; z-index:1; }
-    tr:hover td { background:#fafcff; }
-    .muted { color:var(--muted); }
-    .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; }
-    .danger { color:#b91c1c; }
-    footer { margin-top:16px; color:var(--muted); font-size:12px; text-align:center; }
-    @media (max-width: 700px) { .form { grid-template-columns:1fr; } .toolbar { flex-direction:column; gap:10px; align-items:stretch; } }
+    th, td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:14px; }
+    th { text-align:left; position: sticky; top: 0; background: #0a132a; z-index: 1; }
+    tr:hover { background: rgba(59,130,246,0.07); }
+
+    .status { font-size: 12px; padding: 4px 8px; border-radius: 999px; display:inline-block; }
+    .ok { background: rgba(34,197,94,.15); color:#86efac; border:1px solid rgba(34,197,94,.3); }
+    .bad { background: rgba(239,68,68,.15); color:#fecaca; border:1px solid rgba(239,68,68,.3); }
+    .warn { background: rgba(245,158,11,.15); color:#fde68a; border:1px solid rgba(245,158,11,.3); }
+
+    .search { display:flex; gap:10px; margin-bottom:10px; }
+    .search input { flex:1; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #a5b4fc; }
+    .foot { margin-top: 14px; color: var(--muted); font-size: 12px; }
+    .link { color:#93c5fd; text-decoration: underline; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <header>
-      <h1>울산연구원 3층 회의실 · 예약관리</h1>
-      <div class="chip" id="roomStatus">단일 회의실</div>
-    </header>
+    <h1>울산연구원 <strong>3층 회의실 예약관리</strong> <span class="badge">room.txt 연동</span></h1>
 
-    <section class="card" aria-label="예약 등록">
-      <form id="bookingForm" class="form" autocomplete="off">
-        <div>
-          <label for="title">회의명 *</label>
-          <input id="title" name="title" type="text" placeholder="예: 정례회의" required />
-        </div>
-        <div>
-          <label for="dt">예약일시 *</label>
-          <input id="dt" name="dt" type="datetime-local" required />
-        </div>
-        <div>
-          <label for="owner">예약자 *</label>
-          <input id="owner" name="owner" type="text" placeholder="예: 김박사" required />
-        </div>
-        <div>
-          <label for="duration">소요시간(분)</label>
-          <input id="duration" name="duration" type="text" inputmode="numeric" pattern="^\d{1,3}$" placeholder="기본 60" />
-        </div>
-        <div class="full row">
-          <button class="btn" type="submit" id="submitBtn">등록</button>
-          <button class="btn sec" type="reset" id="resetBtn">초기화</button>
-          <button class="btn ghost" type="button" id="demoBtn" title="샘플 데이터 추가">샘플</button>
-        </div>
-      </form>
-      <div class="toolbar">
-        <div class="row" role="group" aria-label="검색 및 정렬">
-          <input id="search" type="search" placeholder="검색: 회의명/예약자" />
-          <button class="btn sec" type="button" id="sortBtn">시간순 정렬</button>
-        </div>
-        <div class="row">
-          <button class="btn sec" type="button" id="exportBtn">CSV 내보내기</button>
-          <button class="btn ghost" type="button" id="clearAllBtn"><span class="danger">전체삭제</span></button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table aria-describedby="roomStatus">
-          <thead>
-            <tr>
-              <th style="width:38%">회의명</th>
-              <th style="width:26%">예약일시</th>
-              <th style="width:18%">예약자</th>
-              <th style="width:18%">작업</th>
-            </tr>
-          </thead>
-          <tbody id="tbody">
-            <tr><td colspan="4" class="muted">등록된 예약이 없습니다.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <div class="toolbar">
+      <button id="btnOpen">room.txt 열기</button>
+      <button id="btnSave">저장하기</button>
+      <button id="btnExport">다운로드(.txt)</button>
+      <button id="btnImport">가져오기(.txt)</button>
+      <span class="hint">※ Chrome/Edge 등에서 파일 권한 허용 시 room.txt에 직접 저장됩니다. 지원되지 않으면 다운로드/가져오기를 사용하세요.</span>
+    </div>
 
-    <footer>
-      <p>데이터는 브라우저(LocalStorage)에 저장됩니다 · 키: <code>uirc-3f-reservations</code></p>
-    </footer>
+    <div class="grid">
+      <section class="card">
+        <div class="inner">
+          <h2>예약 등록</h2>
+          <form id="frm" class="form">
+            <div class="full">
+              <label>회의명</label>
+              <input type="text" id="title" required placeholder="예: 정책세미나 실무 간담회" />
+            </div>
+            <div>
+              <label>시작일시</label>
+              <input type="datetime-local" id="start" required />
+            </div>
+            <div>
+              <label>종료일시</label>
+              <input type="datetime-local" id="end" required />
+            </div>
+            <div>
+              <label>예약자 성명</label>
+              <input type="text" id="name" required placeholder="홍길동" />
+            </div>
+            <div>
+              <label>부서</label>
+              <input type="text" id="dept" placeholder="정책연구실" />
+            </div>
+            <div>
+              <label>연락처</label>
+              <input type="tel" id="phone" placeholder="010-1234-5678" />
+            </div>
+            <div class="full">
+              <label>비고</label>
+              <textarea id="note" placeholder="준비물, 참석자 등"></textarea>
+            </div>
+            <div class="full actions">
+              <button type="submit" class="btn-primary">예약 추가</button>
+              <button type="button" id="btnClear" class="btn-secondary">입력 초기화</button>
+            </div>
+            <input type="hidden" id="editingId" />
+          </form>
+          <div class="foot">저장 포맷: <span class="mono">TSV (id\ttitle\tstart\tend\tname\tdept\tphone\tnote\tcreated_at)</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="inner">
+          <h2>예약 목록</h2>
+          <div class="search">
+            <input type="search" id="q" placeholder="회의명/예약자/부서 검색" />
+            <button id="btnSortSoon" class="btn-secondary">가까운 순 정렬</button>
+            <button id="btnSortNew" class="btn-secondary">최신 등록순</button>
+          </div>
+          <div class="table-wrap">
+            <table id="tbl">
+              <thead>
+                <tr>
+                  <th>회의명</th>
+                  <th>시작</th>
+                  <th>종료</th>
+                  <th>예약자</th>
+                  <th>부서</th>
+                  <th>연락처</th>
+                  <th>상태</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="foot">중복(시간 겹침) 감지 시 <span class="status bad">충돌</span> 표시됩니다.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="foot">파일 핸들: <span id="fileState" class="mono">미연결</span> · 저장 위치: <span class="mono">room.txt</span></div>
   </div>
 
-  <template id="rowTemplate">
-    <tr>
-      <td class="td-title"></td>
-      <td class="td-dt"></td>
-      <td class="td-owner"></td>
-      <td>
-        <div class="row">
-          <button class="btn sec btn-edit" type="button">수정</button>
-          <button class="btn ghost btn-del" type="button"><span class="danger">삭제</span></button>
-        </div>
-      </td>
-    </tr>
-  </template>
-
   <script>
-    (function() {
-      const KEY = 'uirc-3f-reservations';
-      const $ = (sel, root=document) => root.querySelector(sel);
-      const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    // === Utility ===
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const fmt = (d) => new Date(d).toLocaleString('ko-KR', { hour12: false });
+    const nowISO = () => new Date().toISOString();
+    const toLocalInput = (date) => {
+      const d = new Date(date);
+      const pad = (n) => String(n).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth()+1);
+      const dd = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mi = pad(d.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    }
 
-      const form = $('#bookingForm');
-      const tbody = $('#tbody');
-      const rowTpl = $('#rowTemplate');
-      const searchInput = $('#search');
-      const sortBtn = $('#sortBtn');
-      const exportBtn = $('#exportBtn');
-      const clearAllBtn = $('#clearAllBtn');
-      const demoBtn = $('#demoBtn');
-      const submitBtn = $('#submitBtn');
+    // === Data Model ===
+    /** record = { id, title, start, end, name, dept, phone, note, created_at } */
+    let records = [];
+    let fileHandle = null; // FileSystemFileHandle
 
-      let editingId = null; // 현재 수정 중인 항목의 id
+    function serialize(records) {
+      const header = ['id','title','start','end','name','dept','phone','note','created_at'].join('\t');
+      const rows = records.map(r => [r.id, r.title, r.start, r.end, r.name, r.dept, r.phone, (r.note||'').replace(/\n/g,'\\n'), r.created_at].join('\t'));
+      return [header, ...rows].join('\n');
+    }
 
-      const load = () => {
-        try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; }
-      };
-      const save = (rows) => localStorage.setItem(KEY, JSON.stringify(rows));
-
-      const toIso = (v) => new Date(v).toISOString();
-      const fmt = (iso) => {
-        const d = new Date(iso);
-        if (isNaN(d)) return '';
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,'0');
-        const day = String(d.getDate()).padStart(2,'0');
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mm = String(d.getMinutes()).padStart(2,'0');
-        return `${y}-${m}-${day} ${hh}:${mm}`;
-      };
-
-      const getDuration = () => {
-        const raw = $('#duration').value.trim();
-        const n = Number(raw || 60);
-        return Number.isFinite(n) && n > 0 ? Math.min(n, 600) : 60; // 최대 10시간
-      };
-
-      const upsert = (row) => {
-        const rows = load();
-        const idx = rows.findIndex(r => r.id === row.id);
-        if (idx >= 0) rows[idx] = row; else rows.push(row);
-        save(rows);
-        render();
-      };
-
-      const remove = (id) => {
-        const rows = load().filter(r => r.id !== id);
-        save(rows); render();
-      };
-
-      const render = () => {
-        const q = searchInput.value.trim().toLowerCase();
-        const rows = load().sort((a,b) => new Date(a.dt) - new Date(b.dt));
-        tbody.innerHTML = '';
-        const visible = rows.filter(r => !q || [r.title, r.owner, fmt(r.dt)].some(x => String(x).toLowerCase().includes(q)));
-        if (!visible.length) {
-          const tr = document.createElement('tr');
-          const td = document.createElement('td'); td.colSpan = 4; td.className = 'muted'; td.textContent = '등록된 예약이 없습니다.';
-          tr.appendChild(td); tbody.appendChild(tr); return;
-        }
-        for (const r of visible) {
-          const tr = rowTpl.content.firstElementChild.cloneNode(true);
-          $('.td-title', tr).textContent = r.title;
-          $('.td-owner', tr).textContent = r.owner;
-          $('.td-dt', tr).textContent = fmt(r.dt) + (r.duration ? ` · ${r.duration}분` : '');
-          $('.btn-edit', tr).addEventListener('click', () => startEdit(r.id));
-          $('.btn-del', tr).addEventListener('click', () => {
-            if (confirm('이 예약을 삭제할까요?')) remove(r.id);
-          });
-          tbody.appendChild(tr);
-        }
-      };
-
-      const startEdit = (id) => {
-        const r = load().find(x => x.id === id); if (!r) return;
-        editingId = id;
-        $('#title').value = r.title;
-        $('#owner').value = r.owner;
-        $('#dt').value = new Date(r.dt).toISOString().slice(0,16);
-        $('#duration').value = r.duration || '';
-        submitBtn.textContent = '수정 저장';
-      };
-
-      const resetForm = () => {
-        editingId = null;
-        form.reset();
-        submitBtn.textContent = '등록';
-      };
-
-      const hasConflict = (iso, excludeId=null) => {
-        // 단일 회의실: 동일 시작시각 충돌만 단순 체크 (기간 충돌은 미구현)
-        const rows = load();
-        return rows.some(r => r.dt === iso && r.id !== excludeId);
-      };
-
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = $('#title').value.trim();
-        const owner = $('#owner').value.trim();
-        const dtRaw = $('#dt').value;
-        if (!title || !owner || !dtRaw) return alert('필수 항목을 입력하세요.');
-        const iso = toIso(dtRaw);
-        if (!iso || isNaN(new Date(iso))) return alert('예약일시가 올바르지 않습니다.');
-        if (new Date(iso).getTime() < Date.now() - 60_000) {
-          if(!confirm('과거 시각입니다. 그래도 등록할까요?')) return;
-        }
-        const duration = getDuration();
-        if (hasConflict(iso, editingId)) return alert('해당 시각에 이미 예약이 있습니다.');
-        const row = {
-          id: editingId || crypto.randomUUID(),
-          title, owner, dt: iso, duration
+    function parseTSV(text) {
+      const lines = text.trim().split(/\r?\n/);
+      if (!lines.length) return [];
+      const header = lines[0].split('\t');
+      const idx = (k) => header.indexOf(k);
+      return lines.slice(1).filter(Boolean).map(line => {
+        const c = line.split('\t');
+        return {
+          id: c[idx('id')],
+          title: c[idx('title')],
+          start: c[idx('start')],
+          end: c[idx('end')],
+          name: c[idx('name')],
+          dept: c[idx('dept')],
+          phone: c[idx('phone')],
+          note: (c[idx('note')]||'').replace(/\\n/g,'\n'),
+          created_at: c[idx('created_at')]
         };
-        upsert(row);
-        resetForm();
       });
+    }
 
-      form.addEventListener('reset', () => setTimeout(resetForm, 0));
+    function overlaps(a, b) {
+      // [start, end) overlap
+      return new Date(a.start) < new Date(b.end) && new Date(b.start) < new Date(a.end);
+    }
 
-      searchInput.addEventListener('input', render);
-      sortBtn.addEventListener('click', () => { render(); });
+    function detectConflicts(list) {
+      const ids = new Set();
+      const conflicts = new Set();
+      const sorted = [...list].sort((x, y) => new Date(x.start) - new Date(y.start));
+      for (let i=0; i<sorted.length; i++) {
+        for (let j=i+1; j<sorted.length; j++) {
+          if (new Date(sorted[j].start) >= new Date(sorted[i].end)) break; // early exit
+          if (overlaps(sorted[i], sorted[j])) {
+            conflicts.add(sorted[i].id);
+            conflicts.add(sorted[j].id);
+          }
+        }
+      }
+      return conflicts; // Set of ids
+    }
 
-      exportBtn.addEventListener('click', () => {
-        const rows = load().sort((a,b) => new Date(a.dt) - new Date(b.dt));
-        const header = ['회의명','예약일시','예약자','소요(분)'];
-        const lines = [header.join(',')].concat(rows.map(r => [
-          escapeCSV(r.title), fmt(r.dt), escapeCSV(r.owner), r.duration||''
-        ].join(',')));
-        const blob = new Blob(['\ufeff' + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = '울산연구원_3층회의실_예약목록.csv';
-        a.click();
-        URL.revokeObjectURL(a.href);
-      });
+    // === Rendering ===
+    function render() {
+      const q = $('#q').value.trim().toLowerCase();
+      const tbody = $('#tbl tbody');
+      tbody.innerHTML = '';
+      const filtered = records.filter(r => [r.title, r.name, r.dept].some(v => (v||'').toLowerCase().includes(q)));
+      const conflicts = detectConflicts(filtered);
+      for (const r of filtered.sort((a,b)=> new Date(a.start)-new Date(b.start))) {
+        const tr = document.createElement('tr');
+        const conflict = conflicts.has(r.id);
+        tr.innerHTML = `
+          <td>${escapeHtml(r.title)}</td>
+          <td>${fmt(r.start)}</td>
+          <td>${fmt(r.end)}</td>
+          <td>${escapeHtml(r.name||'')}</td>
+          <td>${escapeHtml(r.dept||'')}</td>
+          <td>${escapeHtml(r.phone||'')}</td>
+          <td>${badge(r, conflict)}</td>
+          <td>
+            <button data-act="edit" data-id="${r.id}" class="btn-secondary">수정</button>
+            <button data-act="del" data-id="${r.id}" class="btn-danger">삭제</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+      updateFileState();
+    }
 
-      clearAllBtn.addEventListener('click', () => {
-        if (confirm('모든 예약을 삭제할까요?')) { localStorage.removeItem(KEY); render(); }
-      });
+    function badge(r, conflict) {
+      const now = new Date();
+      const st = new Date(r.start), en = new Date(r.end);
+      if (conflict) return '<span class="status bad">충돌</span>';
+      if (en < now) return '<span class="status">종료</span>';
+      if (st <= now && now < en) return '<span class="status ok">진행중</span>';
+      return '<span class="status warn">예정</span>';
+    }
 
-      demoBtn.addEventListener('click', () => {
-        if (!confirm('샘플 데이터를 추가할까요?')) return;
-        const base = new Date();
-        base.setMinutes(0,0,0);
-        const rows = [
-          { id: crypto.randomUUID(), title:'정례회의', owner:'김박사', dt: new Date(base.getTime()+ 2*60*60*1000).toISOString(), duration:60 },
-          { id: crypto.randomUUID(), title:'프로젝트 킥오프', owner:'박연구', dt: new Date(base.getTime()+ 4*60*60*1000).toISOString(), duration:90 },
-          { id: crypto.randomUUID(), title:'보고 준비', owner:'이대리', dt: new Date(base.getTime()+ 26*60*60*1000).toISOString(), duration:60 }
-        ];
-        const cur = load(); save(cur.concat(rows)); render();
-      });
+    function escapeHtml(s) {
+      return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
+    }
 
-      const escapeCSV = (v) => {
-        const s = String(v ?? '');
-        if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-        return s;
+    // === Actions ===
+    $('#frm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = $('#title').value.trim();
+      const start = $('#start').value;
+      const end = $('#end').value;
+      if (!title || !start || !end) return alert('회의명 / 시작 / 종료를 입력하세요.');
+      if (new Date(start) >= new Date(end)) return alert('종료일시는 시작일시보다 늦어야 합니다.');
+      const rec = {
+        id: $('#editingId').value || crypto.randomUUID(),
+        title,
+        start: new Date(start).toISOString(),
+        end: new Date(end).toISOString(),
+        name: $('#name').value.trim(),
+        dept: $('#dept').value.trim(),
+        phone: $('#phone').value.trim(),
+        note: $('#note').value.trim(),
+        created_at: $('#editingId').value ? (records.find(r=>r.id===$('#editingId').value)?.created_at || nowISO()) : nowISO()
       };
 
-      // 초기 렌더링
+      const idx = records.findIndex(r => r.id === rec.id);
+      if (idx >= 0) records[idx] = rec; else records.push(rec);
+
+      // 충돌 즉시 경고
+      const conflicts = detectConflicts(records);
+      if (conflicts.has(rec.id)) {
+        alert('⚠️ 시간 겹침(충돌)이 있습니다. 목록 상단에서 확인하세요.');
+      }
+
+      $('#frm').reset();
+      $('#editingId').value = '';
+      render();
+    });
+
+    $('#btnClear').addEventListener('click', () => { $('#frm').reset(); $('#editingId').value = ''; });
+
+    $('#q').addEventListener('input', render);
+    $('#btnSortSoon').addEventListener('click', () => { records.sort((a,b)=> new Date(a.start)-new Date(b.start)); render(); });
+    $('#btnSortNew').addEventListener('click', () => { records.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); render(); });
+
+    $('#tbl').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const r = records.find(x => x.id === id);
+      if (btn.dataset.act === 'edit') {
+        if (!r) return;
+        $('#title').value = r.title;
+        $('#start').value = toLocalInput(r.start);
+        $('#end').value = toLocalInput(r.end);
+        $('#name').value = r.name || '';
+        $('#dept').value = r.dept || '';
+        $('#phone').value = r.phone || '';
+        $('#note').value = r.note || '';
+        $('#editingId').value = r.id;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (btn.dataset.act === 'del') {
+        if (confirm('삭제하시겠습니까?')) {
+          const idx = records.findIndex(x => x.id === id);
+          if (idx >= 0) { records.splice(idx,1); render(); }
+        }
+      }
+    });
+
+    // === File System Access API ===
+    const supportsFSA = 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
+
+    $('#btnOpen').addEventListener('click', async () => {
+      try {
+        if (!supportsFSA) return alert('이 브라우저는 파일 직접 열기를 지원하지 않습니다. "가져오기(.txt)"를 사용하세요.');
+        const [handle] = await window.showOpenFilePicker({
+          multiple: false,
+          types: [{ description: 'Text', accept: { 'text/plain': ['.txt'] } }],
+          excludeAcceptAllOption: false
+        });
+        fileHandle = handle;
+        const file = await handle.getFile();
+        const text = await file.text();
+        records = parseTSV(text);
+        render();
+      } catch (err) {
+        if (err?.name !== 'AbortError') console.error(err);
+      }
+    });
+
+    $('#btnSave').addEventListener('click', async () => {
+      try {
+        if (supportsFSA) {
+          await ensureFileHandle();
+          await writeFile(fileHandle, serialize(records));
+          flash('room.txt 저장 완료');
+        } else {
+          downloadTxt('room.txt', serialize(records));
+          alert('이 브라우저에서는 다운로드로 저장됩니다.');
+        }
+        updateFileState();
+      } catch (err) {
+        console.error(err);
+        alert('저장에 실패했습니다.');
+      }
+    });
+
+    async function ensureFileHandle() {
+      if (!fileHandle) {
+        fileHandle = await window.showSaveFilePicker({
+          suggestedName: 'room.txt',
+          types: [{ description: 'Text', accept: { 'text/plain': ['.txt'] } }]
+        });
+      }
+    }
+
+    async function writeFile(handle, contents) {
+      const writable = await handle.createWritable();
+      await writable.write(contents);
+      await writable.close();
+    }
+
+    function downloadTxt(filename, contents) {
+      const blob = new Blob([contents], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    $('#btnExport').addEventListener('click', () => {
+      downloadTxt('room.txt', serialize(records));
+    });
+
+    $('#btnImport').addEventListener('click', async () => {
+      try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.txt,text/plain';
+        input.onchange = async () => {
+          const file = input.files[0];
+          if (!file) return;
+          const text = await file.text();
+          records = parseTSV(text);
+          render();
+        };
+        input.click();
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    function updateFileState() {
+      $('#fileState').textContent = fileHandle ? (fileHandle.name || '연결됨') : '미연결';
+    }
+
+    function flash(msg) {
+      const el = document.createElement('div');
+      el.textContent = msg;
+      el.style.position = 'fixed';
+      el.style.bottom = '24px';
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+      el.style.background = '#0b2540';
+      el.style.color = '#dbeafe';
+      el.style.border = '1px solid #1e3a8a';
+      el.style.borderRadius = '12px';
+      el.style.padding = '10px 16px';
+      el.style.zIndex = 9999;
+      document.body.appendChild(el);
+      setTimeout(()=>{ el.remove(); }, 1800);
+    }
+
+    // 초기 렌더
+    (function init() {
+      // 예시: 시작/종료 기본값 = 현재 시각 및 +1시간
+      const now = new Date();
+      $('#start').value = toLocalInput(now);
+      $('#end').value = toLocalInput(new Date(now.getTime()+60*60*1000));
       render();
     })();
   </script>
