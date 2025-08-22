@@ -1,450 +1,568 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>울산연구원 3층 회의실 예약관리</title>
-  <style>
-    :root {
-      --bg: #0f172a; /* slate-900 */
-      --card: #111827; /* gray-900 */
-      --muted: #94a3b8; /* slate-400 */
-      --text: #e5e7eb; /* gray-200 */
-      --accent: #38bdf8; /* sky-400 */
-      --ok: #22c55e; /* green-500 */
-      --bad: #ef4444; /* red-500 */
-      --warn: #f59e0b; /* amber-500 */
-      --border: #1f2937; /* gray-800 */
-    }
-    html, body { height: 100%; }
-    body {
-      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, "맑은 고딕", sans-serif;
-      background: linear-gradient(120deg, #0b1020, #0a142c 55%, #0b1020);
-      color: var(--text);
-    }
-    .wrap { max-width: 1100px; margin: 24px auto 80px; padding: 0 16px; }
-    h1 { font-size: 24px; margin: 12px 0 20px; display:flex; align-items:center; gap:10px; }
-    .badge { font-size: 12px; color: var(--bg); background: var(--accent); padding: 2px 8px; border-radius: 999px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>울산연구원 3층 회의실 예약관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; align-items:center; }
-    .toolbar button, .toolbar .right button { 
-      background:#0b2540; color:#dbeafe; border:1px solid #1e3a8a; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:600; 
-    }
-    .toolbar button:hover { filter: brightness(1.1); }
-    .toolbar .right { margin-left:auto; display:flex; gap:10px; }
-    .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-    .grid { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; align-items:start; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
 
-    .card { background: rgba(17,24,39,.7); backdrop-filter: blur(6px); border:1px solid var(--border); border-radius:16px; }
-    .card h2 { font-size:18px; margin: 0 0 10px; }
-    .card .inner { padding:16px; }
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
 
-    .form { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    .form label { font-size:12px; color: var(--muted); display:block; margin-bottom:6px; }
-    .form input, .form select, .form textarea { width:100%; box-sizing:border-box; 
-      background:#0b1020; color: var(--text); border:1px solid var(--border); border-radius:12px; padding:10px; }
-    .form textarea { min-height:72px; grid-column: 1 / -1; resize: vertical; }
-    .form .row { display:flex; gap:12px; }
-    .form .full { grid-column: 1 / -1; }
-    .form .actions { display:flex; gap:10px; }
-    .btn-primary { background:#0b2540; color:#dbeafe; border:1px solid #1e3a8a; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; }
-    .btn-secondary { background:transparent; color:#cbd5e1; border:1px dashed #334155; padding:10px 12px; border-radius:12px; cursor:pointer; }
-    .btn-danger { background:#2a0b10; color:#fecaca; border:1px solid #7f1d1d; padding:10px 12px; border-radius:12px; cursor:pointer; }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
 
-    .table-wrap { overflow:auto; max-height: 60vh; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:14px; }
-    th { text-align:left; position: sticky; top: 0; background: #0a132a; z-index: 1; }
-    tr:hover { background: rgba(59,130,246,0.07); }
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
 
-    .status { font-size: 12px; padding: 4px 8px; border-radius: 999px; display:inline-block; }
-    .ok { background: rgba(34,197,94,.15); color:#86efac; border:1px solid rgba(34,197,94,.3); }
-    .bad { background: rgba(239,68,68,.15); color:#fecaca; border:1px solid rgba(239,68,68,.3); }
-    .warn { background: rgba(245,158,11,.15); color:#fde68a; border:1px solid rgba(245,158,11,.3); }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
 
-    .search { display:flex; gap:10px; margin-bottom:10px; }
-    .search input { flex:1; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #a5b4fc; }
-    .foot { margin-top: 14px; color: var(--muted); font-size: 12px; }
-    .link { color:#93c5fd; text-decoration: underline; cursor: pointer; }
-  </style>
+        .form-section, .list-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .form-section h2, .list-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .datetime-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .reservation-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .reservation-item {
+            background: white;
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #4CAF50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .reservation-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .reservation-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .meeting-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .reservation-details {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        .file-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .datetime-group {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>울산연구원 <strong>3층 회의실 예약관리</strong> <span class="badge">room.txt 연동</span></h1>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 울산연구원 3층 회의실 예약관리</h1>
+            <p>효율적인 회의실 예약 및 관리 시스템</p>
+        </div>
 
-    <div class="toolbar">
-      <button id="btnOpen">room.txt 열기</button>
-      <button id="btnSave">저장하기</button>
-      <button id="btnExport">다운로드(.txt)</button>
-      <button id="btnImport">가져오기(.txt)</button>
-      <span class="hint">※ Chrome/Edge 등에서 파일 권한 허용 시 room.txt에 직접 저장됩니다. 지원되지 않으면 다운로드/가져오기를 사용하세요.</span>
+        <div class="content">
+            <div class="form-section">
+                <h2>📝 새 예약 등록</h2>
+                <div id="statusMessage" class="status-message"></div>
+                
+                <form id="reservationForm">
+                    <div class="form-group">
+                        <label for="meetingName">회의명 *</label>
+                        <input type="text" id="meetingName" name="meetingName" required 
+                               placeholder="예: 월간 업무 회의">
+                    </div>
+
+                    <div class="form-group">
+                        <label>예약 일시 *</label>
+                        <div class="datetime-group">
+                            <div>
+                                <label for="reservationDate">날짜</label>
+                                <input type="date" id="reservationDate" name="reservationDate" required>
+                            </div>
+                            <div>
+                                <label for="reservationTime">시간</label>
+                                <input type="time" id="reservationTime" name="reservationTime" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">회의 시간 (시간) *</label>
+                        <select id="duration" name="duration" required>
+                            <option value="">선택하세요</option>
+                            <option value="0.5">30분</option>
+                            <option value="1">1시간</option>
+                            <option value="1.5">1시간 30분</option>
+                            <option value="2">2시간</option>
+                            <option value="3">3시간</option>
+                            <option value="4">4시간</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reserverName">예약자 이름 *</label>
+                        <input type="text" id="reserverName" name="reserverName" required 
+                               placeholder="예: 홍길동">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reserverDept">소속 부서 *</label>
+                        <input type="text" id="reserverDept" name="reserverDept" required 
+                               placeholder="예: 연구기획팀">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reserverPhone">연락처 *</label>
+                        <input type="tel" id="reserverPhone" name="reserverPhone" required 
+                               placeholder="예: 010-1234-5678">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="participants">참석 인원</label>
+                        <input type="number" id="participants" name="participants" min="1" max="20" 
+                               placeholder="예: 5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">비고</label>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  placeholder="특별한 요청사항이나 메모를 입력하세요"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn">📅 예약 등록</button>
+                </form>
+            </div>
+
+            <div class="list-section">
+                <h2>📋 예약 현황</h2>
+                
+                <div class="file-controls">
+                    <button type="button" class="btn" onclick="loadReservations()">🔄 새로고침</button>
+                    <button type="button" class="btn btn-danger" onclick="clearAllReservations()">🗑️ 전체 삭제</button>
+                    <input type="file" id="fileInput" accept=".txt" style="display: none" onchange="loadFromFile(event)">
+                    <button type="button" class="btn" onclick="document.getElementById('fileInput').click()">📂 파일 불러오기</button>
+                </div>
+
+                <div id="reservationList" class="reservation-list">
+                    <div style="text-align: center; color: #999; padding: 40px;">
+                        등록된 예약이 없습니다.<br>
+                        새로운 예약을 등록해보세요!
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="grid">
-      <section class="card">
-        <div class="inner">
-          <h2>예약 등록</h2>
-          <form id="frm" class="form">
-            <div class="full">
-              <label>회의명</label>
-              <input type="text" id="title" required placeholder="예: 정책세미나 실무 간담회" />
-            </div>
-            <div>
-              <label>시작일시</label>
-              <input type="datetime-local" id="start" required />
-            </div>
-            <div>
-              <label>종료일시</label>
-              <input type="datetime-local" id="end" required />
-            </div>
-            <div>
-              <label>예약자 성명</label>
-              <input type="text" id="name" required placeholder="홍길동" />
-            </div>
-            <div>
-              <label>부서</label>
-              <input type="text" id="dept" placeholder="정책연구실" />
-            </div>
-            <div>
-              <label>연락처</label>
-              <input type="tel" id="phone" placeholder="010-1234-5678" />
-            </div>
-            <div class="full">
-              <label>비고</label>
-              <textarea id="note" placeholder="준비물, 참석자 등"></textarea>
-            </div>
-            <div class="full actions">
-              <button type="submit" class="btn-primary">예약 추가</button>
-              <button type="button" id="btnClear" class="btn-secondary">입력 초기화</button>
-            </div>
-            <input type="hidden" id="editingId" />
-          </form>
-          <div class="foot">저장 포맷: <span class="mono">TSV (id\ttitle\tstart\tend\tname\tdept\tphone\tnote\tcreated_at)</span></div>
-        </div>
-      </section>
+    <script>
+        // 예약 데이터를 저장할 배열
+        let reservations = [];
 
-      <section class="card">
-        <div class="inner">
-          <h2>예약 목록</h2>
-          <div class="search">
-            <input type="search" id="q" placeholder="회의명/예약자/부서 검색" />
-            <button id="btnSortSoon" class="btn-secondary">가까운 순 정렬</button>
-            <button id="btnSortNew" class="btn-secondary">최신 등록순</button>
-          </div>
-          <div class="table-wrap">
-            <table id="tbl">
-              <thead>
-                <tr>
-                  <th>회의명</th>
-                  <th>시작</th>
-                  <th>종료</th>
-                  <th>예약자</th>
-                  <th>부서</th>
-                  <th>연락처</th>
-                  <th>상태</th>
-                  <th>관리</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="foot">중복(시간 겹침) 감지 시 <span class="status bad">충돌</span> 표시됩니다.</div>
-        </div>
-      </section>
-    </div>
-
-    <div class="foot">파일 핸들: <span id="fileState" class="mono">미연결</span> · 저장 위치: <span class="mono">room.txt</span></div>
-  </div>
-
-  <script>
-    // === Utility ===
-    const $ = (sel, root=document) => root.querySelector(sel);
-    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-    const fmt = (d) => new Date(d).toLocaleString('ko-KR', { hour12: false });
-    const nowISO = () => new Date().toISOString();
-    const toLocalInput = (date) => {
-      const d = new Date(date);
-      const pad = (n) => String(n).padStart(2, '0');
-      const yyyy = d.getFullYear();
-      const mm = pad(d.getMonth()+1);
-      const dd = pad(d.getDate());
-      const hh = pad(d.getHours());
-      const mi = pad(d.getMinutes());
-      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
-    }
-
-    // === Data Model ===
-    /** record = { id, title, start, end, name, dept, phone, note, created_at } */
-    let records = [];
-    let fileHandle = null; // FileSystemFileHandle
-
-    function serialize(records) {
-      const header = ['id','title','start','end','name','dept','phone','note','created_at'].join('\t');
-      const rows = records.map(r => [r.id, r.title, r.start, r.end, r.name, r.dept, r.phone, (r.note||'').replace(/\n/g,'\\n'), r.created_at].join('\t'));
-      return [header, ...rows].join('\n');
-    }
-
-    function parseTSV(text) {
-      const lines = text.trim().split(/\r?\n/);
-      if (!lines.length) return [];
-      const header = lines[0].split('\t');
-      const idx = (k) => header.indexOf(k);
-      return lines.slice(1).filter(Boolean).map(line => {
-        const c = line.split('\t');
-        return {
-          id: c[idx('id')],
-          title: c[idx('title')],
-          start: c[idx('start')],
-          end: c[idx('end')],
-          name: c[idx('name')],
-          dept: c[idx('dept')],
-          phone: c[idx('phone')],
-          note: (c[idx('note')]||'').replace(/\\n/g,'\n'),
-          created_at: c[idx('created_at')]
-        };
-      });
-    }
-
-    function overlaps(a, b) {
-      // [start, end) overlap
-      return new Date(a.start) < new Date(b.end) && new Date(b.start) < new Date(a.end);
-    }
-
-    function detectConflicts(list) {
-      const ids = new Set();
-      const conflicts = new Set();
-      const sorted = [...list].sort((x, y) => new Date(x.start) - new Date(y.start));
-      for (let i=0; i<sorted.length; i++) {
-        for (let j=i+1; j<sorted.length; j++) {
-          if (new Date(sorted[j].start) >= new Date(sorted[i].end)) break; // early exit
-          if (overlaps(sorted[i], sorted[j])) {
-            conflicts.add(sorted[i].id);
-            conflicts.add(sorted[j].id);
-          }
-        }
-      }
-      return conflicts; // Set of ids
-    }
-
-    // === Rendering ===
-    function render() {
-      const q = $('#q').value.trim().toLowerCase();
-      const tbody = $('#tbl tbody');
-      tbody.innerHTML = '';
-      const filtered = records.filter(r => [r.title, r.name, r.dept].some(v => (v||'').toLowerCase().includes(q)));
-      const conflicts = detectConflicts(filtered);
-      for (const r of filtered.sort((a,b)=> new Date(a.start)-new Date(b.start))) {
-        const tr = document.createElement('tr');
-        const conflict = conflicts.has(r.id);
-        tr.innerHTML = `
-          <td>${escapeHtml(r.title)}</td>
-          <td>${fmt(r.start)}</td>
-          <td>${fmt(r.end)}</td>
-          <td>${escapeHtml(r.name||'')}</td>
-          <td>${escapeHtml(r.dept||'')}</td>
-          <td>${escapeHtml(r.phone||'')}</td>
-          <td>${badge(r, conflict)}</td>
-          <td>
-            <button data-act="edit" data-id="${r.id}" class="btn-secondary">수정</button>
-            <button data-act="del" data-id="${r.id}" class="btn-danger">삭제</button>
-          </td>`;
-        tbody.appendChild(tr);
-      }
-      updateFileState();
-    }
-
-    function badge(r, conflict) {
-      const now = new Date();
-      const st = new Date(r.start), en = new Date(r.end);
-      if (conflict) return '<span class="status bad">충돌</span>';
-      if (en < now) return '<span class="status">종료</span>';
-      if (st <= now && now < en) return '<span class="status ok">진행중</span>';
-      return '<span class="status warn">예정</span>';
-    }
-
-    function escapeHtml(s) {
-      return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
-    }
-
-    // === Actions ===
-    $('#frm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = $('#title').value.trim();
-      const start = $('#start').value;
-      const end = $('#end').value;
-      if (!title || !start || !end) return alert('회의명 / 시작 / 종료를 입력하세요.');
-      if (new Date(start) >= new Date(end)) return alert('종료일시는 시작일시보다 늦어야 합니다.');
-      const rec = {
-        id: $('#editingId').value || crypto.randomUUID(),
-        title,
-        start: new Date(start).toISOString(),
-        end: new Date(end).toISOString(),
-        name: $('#name').value.trim(),
-        dept: $('#dept').value.trim(),
-        phone: $('#phone').value.trim(),
-        note: $('#note').value.trim(),
-        created_at: $('#editingId').value ? (records.find(r=>r.id===$('#editingId').value)?.created_at || nowISO()) : nowISO()
-      };
-
-      const idx = records.findIndex(r => r.id === rec.id);
-      if (idx >= 0) records[idx] = rec; else records.push(rec);
-
-      // 충돌 즉시 경고
-      const conflicts = detectConflicts(records);
-      if (conflicts.has(rec.id)) {
-        alert('⚠️ 시간 겹침(충돌)이 있습니다. 목록 상단에서 확인하세요.');
-      }
-
-      $('#frm').reset();
-      $('#editingId').value = '';
-      render();
-    });
-
-    $('#btnClear').addEventListener('click', () => { $('#frm').reset(); $('#editingId').value = ''; });
-
-    $('#q').addEventListener('input', render);
-    $('#btnSortSoon').addEventListener('click', () => { records.sort((a,b)=> new Date(a.start)-new Date(b.start)); render(); });
-    $('#btnSortNew').addEventListener('click', () => { records.sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); render(); });
-
-    $('#tbl').addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const id = btn.dataset.id;
-      const r = records.find(x => x.id === id);
-      if (btn.dataset.act === 'edit') {
-        if (!r) return;
-        $('#title').value = r.title;
-        $('#start').value = toLocalInput(r.start);
-        $('#end').value = toLocalInput(r.end);
-        $('#name').value = r.name || '';
-        $('#dept').value = r.dept || '';
-        $('#phone').value = r.phone || '';
-        $('#note').value = r.note || '';
-        $('#editingId').value = r.id;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (btn.dataset.act === 'del') {
-        if (confirm('삭제하시겠습니까?')) {
-          const idx = records.findIndex(x => x.id === id);
-          if (idx >= 0) { records.splice(idx,1); render(); }
-        }
-      }
-    });
-
-    // === File System Access API ===
-    const supportsFSA = 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
-
-    $('#btnOpen').addEventListener('click', async () => {
-      try {
-        if (!supportsFSA) return alert('이 브라우저는 파일 직접 열기를 지원하지 않습니다. "가져오기(.txt)"를 사용하세요.');
-        const [handle] = await window.showOpenFilePicker({
-          multiple: false,
-          types: [{ description: 'Text', accept: { 'text/plain': ['.txt'] } }],
-          excludeAcceptAllOption: false
+        // 페이지 로드 시 기존 예약 데이터 불러오기
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReservations();
+            
+            // 오늘 날짜를 기본값으로 설정
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('reservationDate').value = todayStr;
+            
+            // 현재 시간을 기본값으로 설정
+            const currentTime = today.toTimeString().slice(0, 5);
+            document.getElementById('reservationTime').value = currentTime;
         });
-        fileHandle = handle;
-        const file = await handle.getFile();
-        const text = await file.text();
-        records = parseTSV(text);
-        render();
-      } catch (err) {
-        if (err?.name !== 'AbortError') console.error(err);
-      }
-    });
 
-    $('#btnSave').addEventListener('click', async () => {
-      try {
-        if (supportsFSA) {
-          await ensureFileHandle();
-          await writeFile(fileHandle, serialize(records));
-          flash('room.txt 저장 완료');
-        } else {
-          downloadTxt('room.txt', serialize(records));
-          alert('이 브라우저에서는 다운로드로 저장됩니다.');
-        }
-        updateFileState();
-      } catch (err) {
-        console.error(err);
-        alert('저장에 실패했습니다.');
-      }
-    });
+        // 예약 폼 제출 처리
+        document.getElementById('reservationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const reservation = {
+                id: Date.now(), // 고유 ID 생성
+                meetingName: formData.get('meetingName'),
+                reservationDate: formData.get('reservationDate'),
+                reservationTime: formData.get('reservationTime'),
+                duration: formData.get('duration'),
+                reserverName: formData.get('reserverName'),
+                reserverDept: formData.get('reserverDept'),
+                reserverPhone: formData.get('reserverPhone'),
+                participants: formData.get('participants') || '',
+                notes: formData.get('notes') || '',
+                createdAt: new Date().toISOString()
+            };
 
-    async function ensureFileHandle() {
-      if (!fileHandle) {
-        fileHandle = await window.showSaveFilePicker({
-          suggestedName: 'room.txt',
-          types: [{ description: 'Text', accept: { 'text/plain': ['.txt'] } }]
+            // 시간 충돌 검사
+            if (checkTimeConflict(reservation)) {
+                showStatus('해당 시간대에 이미 예약이 있습니다. 다른 시간을 선택해주세요.', 'error');
+                return;
+            }
+
+            // 예약 추가
+            reservations.push(reservation);
+            
+            // 파일에 저장
+            saveToFile();
+            
+            // 화면 업데이트
+            displayReservations();
+            
+            // 폼 초기화
+            this.reset();
+            
+            // 오늘 날짜와 현재 시간 다시 설정
+            const today = new Date();
+            document.getElementById('reservationDate').value = today.toISOString().split('T')[0];
+            document.getElementById('reservationTime').value = today.toTimeString().slice(0, 5);
+            
+            showStatus('예약이 성공적으로 등록되었습니다!', 'success');
         });
-      }
-    }
 
-    async function writeFile(handle, contents) {
-      const writable = await handle.createWritable();
-      await writable.write(contents);
-      await writable.close();
-    }
+        // 시간 충돌 검사 함수
+        function checkTimeConflict(newReservation) {
+            const newStart = new Date(`${newReservation.reservationDate}T${newReservation.reservationTime}`);
+            const newEnd = new Date(newStart.getTime() + (parseFloat(newReservation.duration) * 60 * 60 * 1000));
 
-    function downloadTxt(filename, contents) {
-      const blob = new Blob([contents], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-    }
+            return reservations.some(existing => {
+                if (existing.reservationDate !== newReservation.reservationDate) {
+                    return false;
+                }
+                
+                const existingStart = new Date(`${existing.reservationDate}T${existing.reservationTime}`);
+                const existingEnd = new Date(existingStart.getTime() + (parseFloat(existing.duration) * 60 * 60 * 1000));
 
-    $('#btnExport').addEventListener('click', () => {
-      downloadTxt('room.txt', serialize(records));
-    });
+                // 시간 겹침 검사
+                return (newStart < existingEnd && newEnd > existingStart);
+            });
+        }
 
-    $('#btnImport').addEventListener('click', async () => {
-      try {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.txt,text/plain';
-        input.onchange = async () => {
-          const file = input.files[0];
-          if (!file) return;
-          const text = await file.text();
-          records = parseTSV(text);
-          render();
-        };
-        input.click();
-      } catch (err) {
-        console.error(err);
-      }
-    });
+        // 예약 목록 표시
+        function displayReservations() {
+            const listElement = document.getElementById('reservationList');
+            
+            if (reservations.length === 0) {
+                listElement.innerHTML = `
+                    <div style="text-align: center; color: #999; padding: 40px;">
+                        등록된 예약이 없습니다.<br>
+                        새로운 예약을 등록해보세요!
+                    </div>
+                `;
+                return;
+            }
 
-    function updateFileState() {
-      $('#fileState').textContent = fileHandle ? (fileHandle.name || '연결됨') : '미연결';
-    }
+            // 날짜와 시간 순으로 정렬
+            const sortedReservations = [...reservations].sort((a, b) => {
+                const dateA = new Date(`${a.reservationDate}T${a.reservationTime}`);
+                const dateB = new Date(`${b.reservationDate}T${b.reservationTime}`);
+                return dateA - dateB;
+            });
 
-    function flash(msg) {
-      const el = document.createElement('div');
-      el.textContent = msg;
-      el.style.position = 'fixed';
-      el.style.bottom = '24px';
-      el.style.left = '50%';
-      el.style.transform = 'translateX(-50%)';
-      el.style.background = '#0b2540';
-      el.style.color = '#dbeafe';
-      el.style.border = '1px solid #1e3a8a';
-      el.style.borderRadius = '12px';
-      el.style.padding = '10px 16px';
-      el.style.zIndex = 9999;
-      document.body.appendChild(el);
-      setTimeout(()=>{ el.remove(); }, 1800);
-    }
+            const html = sortedReservations.map(reservation => {
+                const date = new Date(reservation.reservationDate);
+                const formattedDate = date.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+                
+                const endTime = calculateEndTime(reservation.reservationTime, reservation.duration);
+                
+                return `
+                    <div class="reservation-item">
+                        <div class="reservation-header">
+                            <div class="meeting-name">${reservation.meetingName}</div>
+                            <button class="delete-btn" onclick="deleteReservation(${reservation.id})">삭제</button>
+                        </div>
+                        <div class="reservation-details">
+                            <strong>📅 일시:</strong> ${formattedDate} ${reservation.reservationTime} - ${endTime}<br>
+                            <strong>👤 예약자:</strong> ${reservation.reserverName} (${reservation.reserverDept})<br>
+                            <strong>📞 연락처:</strong> ${reservation.reserverPhone}<br>
+                            ${reservation.participants ? `<strong>👥 참석인원:</strong> ${reservation.participants}명<br>` : ''}
+                            ${reservation.notes ? `<strong>📝 비고:</strong> ${reservation.notes}<br>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
-    // 초기 렌더
-    (function init() {
-      // 예시: 시작/종료 기본값 = 현재 시각 및 +1시간
-      const now = new Date();
-      $('#start').value = toLocalInput(now);
-      $('#end').value = toLocalInput(new Date(now.getTime()+60*60*1000));
-      render();
-    })();
-  </script>
+            listElement.innerHTML = html;
+        }
+
+        // 종료 시간 계산
+        function calculateEndTime(startTime, duration) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const durationHours = Math.floor(duration);
+            const durationMinutes = (duration % 1) * 60;
+            
+            const endHours = hours + durationHours;
+            const endMinutes = minutes + durationMinutes;
+            
+            const totalMinutes = endHours * 60 + endMinutes;
+            const finalHours = Math.floor(totalMinutes / 60) % 24;
+            const finalMinutes = totalMinutes % 60;
+            
+            return `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+        }
+
+        // 예약 삭제
+        function deleteReservation(id) {
+            if (confirm('정말로 이 예약을 삭제하시겠습니까?')) {
+                reservations = reservations.filter(r => r.id !== id);
+                saveToFile();
+                displayReservations();
+                showStatus('예약이 삭제되었습니다.', 'success');
+            }
+        }
+
+        // 전체 예약 삭제
+        function clearAllReservations() {
+            if (confirm('모든 예약을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                reservations = [];
+                saveToFile();
+                displayReservations();
+                showStatus('모든 예약이 삭제되었습니다.', 'success');
+            }
+        }
+
+        // 파일에 저장 (다운로드)
+        function saveToFile() {
+            const data = reservations.map(r => {
+                return `${r.meetingName}|${r.reservationDate}|${r.reservationTime}|${r.duration}|${r.reserverName}|${r.reserverDept}|${r.reserverPhone}|${r.participants}|${r.notes}|${r.createdAt}|${r.id}`;
+            }).join('\n');
+
+            const blob = new Blob([data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'room.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 파일에서 불러오기
+        function loadFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result.trim();
+                    if (!content) {
+                        showStatus('파일이 비어있습니다.', 'error');
+                        return;
+                    }
+
+                    const lines = content.split('\n');
+                    const loadedReservations = lines.map(line => {
+                        const parts = line.split('|');
+                        if (parts.length >= 10) {
+                            return {
+                                meetingName: parts[0],
+                                reservationDate: parts[1],
+                                reservationTime: parts[2],
+                                duration: parts[3],
+                                reserverName: parts[4],
+                                reserverDept: parts[5],
+                                reserverPhone: parts[6],
+                                participants: parts[7],
+                                notes: parts[8],
+                                createdAt: parts[9],
+                                id: parseInt(parts[10]) || Date.now() + Math.random()
+                            };
+                        }
+                        return null;
+                    }).filter(r => r !== null);
+
+                    reservations = loadedReservations;
+                    displayReservations();
+                    showStatus(`${loadedReservations.length}개의 예약이 불러와졌습니다.`, 'success');
+                } catch (error) {
+                    showStatus('파일을 읽는 중 오류가 발생했습니다.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 예약 목록 새로고침
+        function loadReservations() {
+            // 실제 환경에서는 서버에서 데이터를 불러오거나
+            // 로컬 스토리지에서 불러올 수 있습니다
+            displayReservations();
+        }
+
+        // 상태 메시지 표시
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = `status-message status-${type}`;
+            statusElement.style.display = 'block';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
